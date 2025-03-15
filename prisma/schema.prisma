@@ -1,0 +1,155 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Usuarios
+model Usuario {
+  id          Int       @id @default(autoincrement())
+  nombre      String
+  email       String    @unique
+  password    String
+  rol         String // ADMIN, USUARIO, SUPERVISOR
+  activo      Boolean   @default(true)
+  ventas      Venta[]
+  createdAt   DateTime  @default(now())
+  ultimoLogin DateTime?
+}
+
+// Clientes
+model Cliente {
+  id            Int      @id @default(autoincrement())
+  nombre        String
+  apellido      String
+  documento     String   @unique
+  tipoDocumento String // DNI, RUC, PASAPORTE
+  email         String?
+  telefono      String?
+  direccion     String?
+  ventas        Venta[]
+  createdAt     DateTime @default(now())
+}
+
+// Productos
+model Producto {
+  id             Int             @id @default(autoincrement())
+  codigo         String          @unique
+  nombre         String
+  descripcion    String?
+  precioCompra   Float
+  precioVenta    Float
+  stock          Int
+  stockMinimo    Int
+  categoria      Categoria       @relation(fields: [categoriaId], references: [id])
+  categoriaId    Int
+  marca          Marca           @relation(fields: [marcaId], references: [id])
+  marcaId        Int
+  unidadMedida   String // UNIDAD, CAJA, PAQUETE, KILOGRAMO, LITRO
+  impuesto       Float           @default(0)
+  activo         Boolean         @default(true)
+  detalleVenta   DetalleVenta[]
+  detallesCompra DetalleCompra[]
+  createdAt      DateTime        @default(now())
+}
+
+// Categorías
+model Categoria {
+  id          Int        @id @default(autoincrement())
+  nombre      String     @unique
+  descripcion String?
+  productos   Producto[]
+}
+
+// Marcas
+model Marca {
+  id          Int        @id @default(autoincrement())
+  nombre      String     @unique
+  descripcion String?
+  productos   Producto[]
+}
+
+// Ventas
+model Venta {
+  id            Int            @id @default(autoincrement())
+  codigo        String         @unique
+  cliente       Cliente        @relation(fields: [clienteId], references: [id])
+  clienteId     Int
+  usuario       Usuario        @relation(fields: [usuarioId], references: [id])
+  usuarioId     Int
+  fecha         DateTime       @default(now())
+  total         Float
+  impuestoTotal Float
+  estado        String         @default("PENDIENTE") // PENDIENTE, PAGADA, ANULADA
+  metodoPago    String // EFECTIVO, TARJETA, TRANSFERENCIA, CREDITO
+  detalles      DetalleVenta[]
+  comprobante   Comprobante?
+}
+
+// Detalles de Venta
+model DetalleVenta {
+  id           Int      @id @default(autoincrement())
+  venta        Venta    @relation(fields: [ventaId], references: [id])
+  ventaId      Int
+  producto     Producto @relation(fields: [productoId], references: [id])
+  productoId   Int
+  cantidad     Int
+  precioUnidad Float
+  descuento    Float    @default(0)
+  impuesto     Float
+}
+
+// Comprobantes
+model Comprobante {
+  id      Int      @id @default(autoincrement())
+  venta   Venta    @relation(fields: [ventaId], references: [id])
+  ventaId Int      @unique
+  tipo    String // BOLETA, FACTURA, TICKET
+  numero  String   @unique
+  fecha   DateTime @default(now())
+}
+
+// Proveedores
+model Proveedor {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  documento String   @unique
+  contacto  String?
+  telefono  String?
+  email     String?
+  direccion String?
+  compras   Compra[]
+}
+
+// Compras
+model Compra {
+  id          Int             @id @default(autoincrement())
+  proveedor   Proveedor       @relation(fields: [proveedorId], references: [id])
+  proveedorId Int
+  fecha       DateTime        @default(now())
+  total       Float
+  estado      String          @default("PENDIENTE") // PENDIENTE, RECIBIDA, PAGADA, ANULADA
+  detalles    DetalleCompra[]
+}
+
+// Detalles de Compra
+model DetalleCompra {
+  id           Int      @id @default(autoincrement())
+  compra       Compra   @relation(fields: [compraId], references: [id])
+  compraId     Int
+  producto     Producto @relation(fields: [productoId], references: [id])
+  productoId   Int
+  cantidad     Int
+  precioCompra Float
+}
+
+

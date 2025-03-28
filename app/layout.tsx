@@ -4,6 +4,7 @@ import { ThemeProvider } from '@/components/theme/theme-provider';
 import { SidebarProvider } from '@/hooks/useSidebar';
 import { AppSidebar } from '@/components/sidebar';
 import { AppHeader } from '@/components/header';
+import { Toaster } from 'sonner';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -15,8 +16,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
+        <Toaster richColors closeButton position="bottom-right" />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

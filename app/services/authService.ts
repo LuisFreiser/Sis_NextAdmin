@@ -1,7 +1,11 @@
-
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcryptjs'; // Importa la biblioteca bcryptjs para el encriptado de contraseñas
 import { prisma } from '@/lib/prisma';
-import { UsuarioSchema, UsuarioCrearInput, LoginInput, LoginSchema } from '@/app/schemas/usuarioSchema';
+import {
+  UsuarioSchema,
+  UsuarioCrearInput,
+  LoginInput,
+  LoginSchema,
+} from '@/app/schemas/usuarioSchema';
 
 export const authService = {
   async registrar(datos: UsuarioCrearInput) {
@@ -9,21 +13,20 @@ export const authService = {
     const passwordHash = await bcrypt.hash(validado.password, 10);
 
     try {
-      const usuario = await prisma.usuario.create({
+      const usuario = await prisma.usuarios.create({
         data: {
           ...validado,
           password: passwordHash,
-          ultimoLogin: null
         },
         select: {
           id: true,
           nombre: true,
           email: true,
           rol: true,
-          activo: true
-        }
+          estado: true,
+        },
       });
-      
+
       return usuario;
     } catch (error) {
       if (error instanceof Error) {
@@ -37,31 +40,31 @@ export const authService = {
 
   async login(credenciales: LoginInput) {
     const { email, password } = LoginSchema.parse(credenciales);
-    const usuario = await prisma.usuario.findUnique({ 
-      where: { email: email.toLowerCase() } 
+    const usuario = await prisma.usuarios.findUnique({
+      where: { email: email.toLowerCase() },
     });
-    
+
     if (!usuario) {
       throw new Error('Credenciales inválidas');
     }
 
     const passwordCorrecta = await bcrypt.compare(password, usuario.password);
-    
+
     if (!passwordCorrecta) {
       throw new Error('Credenciales inválidas');
     }
 
-    if (!usuario.activo) {
+    if (!usuario.estado) {
       throw new Error('Usuario inactivo');
     }
 
-    await prisma.usuario.update({
-      where: { id: usuario.id },
-      data: { ultimoLogin: new Date() }
-    });
+    // await prisma.usuarios.update({
+    //   where: { id: usuario.id },
+    //   data: { ultimoLogin: new Date() },
+    // });
 
-    const {...usuarioSinPassword } = usuario;
-    
+    const { ...usuarioSinPassword } = usuario;
+
     return usuarioSinPassword;
-  }
+  },
 };

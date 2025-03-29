@@ -6,8 +6,9 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 //IMPORTAMOS LA IMAGEN POR DEFECTO
-import noImage from '@/public/no-image.jpg';
+import noImage from '@/public/no-image.png';
 
+//IMPORTAMOS LOS COMPONENTES
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -27,7 +28,16 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Loader2, Home, ChevronRight, FilePlus2, FilePenLine, Search, Printer } from 'lucide-react';
+import {
+  Loader2,
+  Home,
+  ChevronRight,
+  FilePlus2,
+  FilePenLine,
+  Search,
+  Printer,
+  SquarePen,
+} from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -44,6 +54,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 
+//DEFINIMOS EL TIPO DE DATOS DE LOS PRODUCTOS Y SUS RELACIONES
 type Producto = {
   id: number;
   codigo_prod: string;
@@ -71,12 +82,15 @@ type Producto = {
   } | null;
 };
 
+//CUERPO DE LA PAGINA PRODUCTOS
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+
+  //CONSTANTE PARA EL NUMERO DE PAGINAS
+  const itemsPerPage = 10;
 
   const [nuevoProducto, setNuevoProducto] = useState<Partial<Producto>>({
     codigo_prod: '',
@@ -96,7 +110,7 @@ export default function ProductosPage() {
   const [marcas, setMarcas] = useState<Array<{ id: number; nombre: string }>>([]);
   const [presentaciones, setPresentaciones] = useState<Array<{ id: number; nombre: string }>>([]);
 
-  // Estados para el manejo de imágenes
+  // ESTADOS PARA PREVISUALIZAR IMAGENES
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [editPreviewImage, setEditPreviewImage] = useState<string | null>(null);
 
@@ -124,7 +138,7 @@ export default function ProductosPage() {
     fetchProductos();
   }, []);
 
-  // FUNICION PARA OBTENER MARCAS, CATEGORIAS Y PRESENTACIONES
+  // FUNCION PARA OBTENER MARCAS, CATEGORIAS Y PRESENTACIONES
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -285,13 +299,13 @@ export default function ProductosPage() {
   ) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validar tamaño de archivo (máximo 2MB)
+      // VALIDAR TAMAÑO DE ARCHIVO (máximo 2MB)
       if (file.size > 2 * 1024 * 1024) {
         toast.error('La imagen no debe superar los 2MB');
         return;
       }
 
-      // Validar tipo de archivo
+      // VALIDAR TIPO DE ARCHIVO
       if (!file.type.startsWith('image/')) {
         toast.error('El archivo debe ser una imagen');
         return;
@@ -310,8 +324,8 @@ export default function ProductosPage() {
       };
       reader.readAsDataURL(file);
     } else {
-      // Si no hay archivo seleccionado, usar la imagen por defecto
-      const defaultImage = '/no-image.jpg';
+      // USAR NO-IMAGE.PNG POR DEFECTO
+      const defaultImage = '/no-image.png';
       if (isEdit) {
         setEditPreviewImage(defaultImage);
         setEditProducto((prev) => (prev ? { ...prev, imagen: defaultImage } : null));
@@ -322,31 +336,25 @@ export default function ProductosPage() {
     }
   };
 
-  // Filtrado de productos
+  // FILTRAR LOS PRODUCTOS POR NOMBRE, CODIGO O MARCA
   const filteredProductos = productos.filter(
     (producto) =>
       producto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      producto.codigo_prod.toLowerCase().includes(searchTerm.toLowerCase())
+      producto.codigo_prod.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      producto.marca.nombre.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Paginación
-  const paginatedProductos = filteredProductos.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-  const totalPages = Math.ceil(filteredProductos.length / itemsPerPage);
-
-  // FUNCION IMPRIMIR REPORTES
+  // FUNCION PARA IMPRIMIR REPORTES
   const handleImprimirReporte = () => {
     const doc = new jsPDF();
 
-    // Configurar el título
+    // CONFIGURAR EL TITULO DEL PDF
     doc.setFontSize(20);
     doc.text('Reporte de Productos', 75, 22);
     doc.setFontSize(11);
     doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 30);
 
-    // Preparar los datos para la tabla
+    // PREPARAR LOS DATOS DE LA TABLA
     const tableRows = productos.map((producto) => [
       producto.codigo_prod,
       producto.nombre,
@@ -378,7 +386,7 @@ export default function ProductosPage() {
       },
     });
 
-    // Guardar el PDF
+    // GUADAR EL PDF
     doc.save('reporte-productos.pdf');
     toast.success('Reporte generado exitosamente');
   };
@@ -392,7 +400,15 @@ export default function ProductosPage() {
       </div>
     );
   }
-  //CUERPO DE LA PAGINA PRODUCTOS
+
+  // PAGINACION DE LA TABLA PRODUCTOS
+  const paginatedProductos = filteredProductos.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  const totalPages = Math.ceil(filteredProductos.length / itemsPerPage);
+
+  //FRONT-END DE LA PAGINA PRODUCTOS
   return (
     <div className="container mx-auto p-4 rounded-lg shadow-lg bg-white dark:bg-slate-900 dark:shadow-slate-700">
       <div className="flex justify-between items-center">
@@ -407,193 +423,248 @@ export default function ProductosPage() {
             <span>Productos</span>
           </div>
         </div>
-
+        {/*BOTONES DE AGREGAR E IMPRIMIR */}
         <div className="flex gap-2">
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="mb-4">
+              <Button
+                className="mb-4"
+                onClick={() => {
+                  // Establecer la imagen por defecto al abrir el modal
+                  setPreviewImage('/no-image.png');
+                  // Reiniciar el formulario con valores por defecto
+                  setNuevoProducto({
+                    codigo_prod: '',
+                    nombre: '',
+                    precio_compra: 0,
+                    precio_venta: 0,
+                    stock: 0,
+                    stock_min: 0,
+                    categoriaId: 0,
+                    marcaId: 0,
+                    presentacionId: null,
+                    estado: 'VIGENTE',
+                    imagen: '/no-image.png',
+                  });
+                }}
+              >
                 <FilePlus2 /> Agregar Producto
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Crear Nuevo Producto</DialogTitle>
+                <DialogTitle>
+                  <SquarePen className="inline mr-2" />
+                  Nuevo Producto
+                </DialogTitle>
               </DialogHeader>
               <div className="grid grid-cols-2 gap-4">
-                <Input
-                  placeholder="Código de Barra"
-                  value={nuevoProducto.codigo_prod || ''}
-                  onChange={(e) =>
-                    setNuevoProducto({
-                      ...nuevoProducto,
-                      codigo_prod: e.target.value,
-                    })
-                  }
-                />
-                <Input
-                  placeholder="Nombre del Producto"
-                  value={nuevoProducto.nombre || ''}
-                  onChange={(e) =>
-                    setNuevoProducto({
-                      ...nuevoProducto,
-                      nombre: e.target.value,
-                    })
-                  }
-                />
-                <Select
-                  onValueChange={(value) =>
-                    setNuevoProducto({
-                      ...nuevoProducto,
-                      categoriaId: value === '0' ? 0 : Number(value),
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Categoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* Cambiamos el valor vacío por "0" */}
-                    {/* <SelectItem value="0"></SelectItem> */}
-                    {categorias.map((categoria) => (
-                      <SelectItem key={categoria.id} value={categoria.id.toString()}>
-                        {categoria.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select
-                  onValueChange={(value) =>
-                    setNuevoProducto({
-                      ...nuevoProducto,
-                      marcaId: Number(value),
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Marca" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* Cambiamos el valor vacío por "0" */}
-                    <SelectItem value="0">Seleccione una marca</SelectItem>
-                    {marcas.map((marca) => (
-                      <SelectItem key={marca.id} value={marca.id.toString()}>
-                        {marca.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select
-                  onValueChange={(value) =>
-                    setNuevoProducto({
-                      ...nuevoProducto,
-                      presentacionId: value === 'null' ? null : Number(value),
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Presentación" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* Cambiamos el valor vacío por "null" */}
-                    <SelectItem value="null">Sin presentación</SelectItem>
-                    {presentaciones.map((presentacion) => (
-                      <SelectItem key={presentacion.id} value={presentacion.id.toString()}>
-                        {presentacion.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  type="number"
-                  min="0"
-                  placeholder="Stock"
-                  value={nuevoProducto.stock || ''}
-                  onChange={(e) =>
-                    setNuevoProducto({
-                      ...nuevoProducto,
-                      stock: Math.max(0, Number(e.target.value)),
-                    })
-                  }
-                />
-                <Input
-                  type="number"
-                  min="0"
-                  placeholder="Stock Mínimo"
-                  value={nuevoProducto.stock_min || ''}
-                  onChange={(e) =>
-                    setNuevoProducto({
-                      ...nuevoProducto,
-                      stock_min: Number(e.target.value),
-                    })
-                  }
-                />
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Precio de Compra"
-                  value={nuevoProducto.precio_compra || ''}
-                  onChange={(e) =>
-                    setNuevoProducto({
-                      ...nuevoProducto,
-                      precio_compra: Math.max(0, Number(e.target.value)),
-                    })
-                  }
-                />
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Precio de Venta"
-                  value={nuevoProducto.precio_venta || ''}
-                  onChange={(e) =>
-                    setNuevoProducto({
-                      ...nuevoProducto,
-                      precio_venta: Math.max(0, Number(e.target.value)),
-                    })
-                  }
-                />
+                <label className="text-sm font-medium text-gray-700">
+                  Cod.Interno
+                  <Input
+                    placeholder="CL363793"
+                    value={nuevoProducto.codigo_prod || ''}
+                    onChange={(e) =>
+                      setNuevoProducto({
+                        ...nuevoProducto,
+                        codigo_prod: e.target.value,
+                      })
+                    }
+                  />
+                </label>
+                <label className="text-sm font-medium text-gray-700">
+                  Nombre
+                  <Input
+                    placeholder="Nombre del Producto"
+                    value={nuevoProducto.nombre || ''}
+                    onChange={(e) =>
+                      setNuevoProducto({
+                        ...nuevoProducto,
+                        nombre: e.target.value,
+                      })
+                    }
+                  />
+                </label>
+                <label className="text-sm font-medium text-gray-700">
+                  Categoria
+                  <Select
+                    onValueChange={(value) =>
+                      setNuevoProducto({
+                        ...nuevoProducto,
+                        categoriaId: value === '0' ? 0 : Number(value),
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar Categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {/* Cambiamos el valor vacío por "0" */}
+                      {/* <SelectItem value="0"></SelectItem> */}
+                      {categorias.map((categoria) => (
+                        <SelectItem key={categoria.id} value={categoria.id.toString()}>
+                          {categoria.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </label>
 
-                <Select
-                  onValueChange={(value) =>
-                    setNuevoProducto({
-                      ...nuevoProducto,
-                      estado: value,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Estado" defaultValue="VIGENTE" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="VIGENTE">VIGENTE</SelectItem>
-                    <SelectItem value="DESCONTINUADO">DESCONTINUADO</SelectItem>
-                  </SelectContent>
-                </Select>
+                <label className="text-sm font-medium text-gray-700">
+                  Marca
+                  <Select
+                    onValueChange={(value) =>
+                      setNuevoProducto({
+                        ...nuevoProducto,
+                        marcaId: Number(value),
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar Marca" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {/* Cambiamos el valor vacío por "0" */}
+                      <SelectItem value="0">Seleccione una marca</SelectItem>
+                      {marcas.map((marca) => (
+                        <SelectItem key={marca.id} value={marca.id.toString()}>
+                          {marca.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </label>
+
+                <label className="text-sm font-medium text-gray-700">
+                  Presentación
+                  <Select
+                    onValueChange={(value) =>
+                      setNuevoProducto({
+                        ...nuevoProducto,
+                        presentacionId: value === 'null' ? null : Number(value),
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar Presentación" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {/* Cambiamos el valor vacío por "null" */}
+                      <SelectItem value="null">Sin presentación</SelectItem>
+                      {presentaciones.map((presentacion) => (
+                        <SelectItem key={presentacion.id} value={presentacion.id.toString()}>
+                          {presentacion.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </label>
+
+                <label className="text-sm font-medium text-gray-700">
+                  Stock
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={nuevoProducto.stock || ''}
+                    onChange={(e) =>
+                      setNuevoProducto({
+                        ...nuevoProducto,
+                        stock: Math.max(0, Number(e.target.value)),
+                      })
+                    }
+                  />
+                </label>
+
+                <label className="text-sm font-medium text-gray-700">
+                  Stock Min
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={nuevoProducto.stock_min || ''}
+                    onChange={(e) =>
+                      setNuevoProducto({
+                        ...nuevoProducto,
+                        stock_min: Number(e.target.value),
+                      })
+                    }
+                  />
+                </label>
+
+                <label className="text-sm font-medium text-gray-700">
+                  Precio Compra
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={nuevoProducto.precio_compra || ''}
+                    onChange={(e) =>
+                      setNuevoProducto({
+                        ...nuevoProducto,
+                        precio_compra: Math.max(0, Number(e.target.value)),
+                      })
+                    }
+                  />
+                </label>
+                <label className="text-sm font-medium text-gray-700">
+                  Precio Venta
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={nuevoProducto.precio_venta || ''}
+                    onChange={(e) =>
+                      setNuevoProducto({
+                        ...nuevoProducto,
+                        precio_venta: Math.max(0, Number(e.target.value)),
+                      })
+                    }
+                  />
+                </label>
+                <label className="text-sm font-medium text-gray-700">
+                  Estado
+                  <Select
+                    onValueChange={(value) =>
+                      setNuevoProducto({
+                        ...nuevoProducto,
+                        estado: value,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Estado" defaultValue="VIGENTE" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="VIGENTE">VIGENTE</SelectItem>
+                      <SelectItem value="DESCONTINUADO">DESCONTINUADO</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </label>
 
                 {/*AGREGAMOS EL CAMPO DE IMAGEN Y SU VISTA PREVIA*/}
-                <div className="col-span-2 grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-base font-medium pl-3">Imagen</label>
-                    <Input
-                      type="file"
-                      className="file:mr-4 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                      accept="image/*"
-                      onChange={(e) => handleImageChange(e)}
+                <label className="text-sm font-medium text-gray-700">
+                  Imagen
+                  <Input
+                    type="file"
+                    className="file:mr-4 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                    accept="image/*"
+                    onChange={(e) => handleImageChange(e)}
+                  />
+                </label>
+                {previewImage && (
+                  <div className="flex items-center justify-center">
+                    <Image
+                      src={previewImage || noImage}
+                      alt={previewImage ? 'Vista previa' : 'Sin imagen'}
+                      className="max-h-32 object-contain"
+                      width={150}
+                      height={150}
                     />
                   </div>
-                  {previewImage && (
-                    <div className="flex items-center justify-center">
-                      <Image
-                        src={previewImage || noImage}
-                        alt={previewImage ? 'Vista previa' : 'Sin imagen'}
-                        className="max-h-32 object-contain"
-                        width={200}
-                        height={200}
-                      />
-                    </div>
-                  )}
-                </div>
+                )}
 
                 <DialogClose asChild>
                   <Button onClick={handleCrearProducto}>Crear Producto</Button>
@@ -601,6 +672,8 @@ export default function ProductosPage() {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/*BOTON DE IMPRIMIR REPORTES*/}
           <Button className="mb-4" onClick={handleImprimirReporte}>
             <Printer />
             Imprimir Reporte
@@ -608,6 +681,7 @@ export default function ProductosPage() {
         </div>
       </div>
 
+      {/*BUSCADOR DE PRODUCTOS*/}
       <div className="flex-1 mb-4">
         <Input
           type="search"
@@ -622,7 +696,7 @@ export default function ProductosPage() {
         />
       </div>
 
-      {/*TABLA DE PRODUCTOS*/}
+      {/*TABLA DE PAGINA PRODUCTOS*/}
       <div className="hidden border md:block">
         <Table>
           <TableHeader>
@@ -644,7 +718,23 @@ export default function ProductosPage() {
                 <TableCell className="py-1">{producto.nombre}</TableCell>
                 <TableCell className="py-1">{producto.marca.nombre}</TableCell>
                 <TableCell className="py-1">{producto.presentacion?.nombre || '-'}</TableCell>
-                <TableCell className="py-1">{producto.stock}</TableCell>
+                <TableCell className="py-1">
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      producto.stock === 0
+                        ? 'bg-red-600 text-gray-50'
+                        : producto.stock_min !== null && producto.stock <= producto.stock_min
+                        ? 'bg-orange-400 text-gray-50'
+                        : 'text-gray-900'
+                    }`}
+                  >
+                    {producto.stock === 0
+                      ? 'AGOTADO'
+                      : producto.stock_min !== null && producto.stock <= producto.stock_min
+                      ? 'EN MINIMO'
+                      : producto.stock}
+                  </span>
+                </TableCell>
                 <TableCell className="py-1">
                   {new Intl.NumberFormat('es-PE', {
                     style: 'currency',
@@ -667,7 +757,7 @@ export default function ProductosPage() {
                         title="Editar Producto"
                         onClick={() => {
                           setEditProducto(producto);
-                          setEditPreviewImage(producto.imagen || '/no-image.jpg');
+                          setEditPreviewImage(producto.imagen || '/no-image.png');
                         }}
                       >
                         <FilePenLine />
@@ -675,173 +765,208 @@ export default function ProductosPage() {
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl">
                       <DialogHeader>
-                        <DialogTitle>Editar Producto</DialogTitle>
+                        <DialogTitle>
+                          <FilePenLine className="inline mr-2" />
+                          Editar Producto
+                        </DialogTitle>
                       </DialogHeader>
                       {editProducto && (
                         <div className="grid grid-cols-2 gap-4">
-                          <Input
-                            placeholder="Código de Barra"
-                            value={editProducto.codigo_prod || ''}
-                            onChange={(e) =>
-                              setEditProducto({
-                                ...editProducto,
-                                codigo_prod: e.target.value,
-                              })
-                            }
-                          />
-                          <Input
-                            placeholder="Nombre del Producto"
-                            value={editProducto.nombre || ''}
-                            onChange={(e) =>
-                              setEditProducto({
-                                ...editProducto,
-                                nombre: e.target.value,
-                              })
-                            }
-                          />
-                          <Select
-                            defaultValue={editProducto.categoriaId?.toString()}
-                            onValueChange={(value) =>
-                              setEditProducto({
-                                ...editProducto,
-                                categoriaId: Number(value),
-                              })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Categoría" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {categorias.map((categoria) => (
-                                <SelectItem key={categoria.id} value={categoria.id.toString()}>
-                                  {categoria.nombre}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select
-                            defaultValue={editProducto.marcaId?.toString()}
-                            onValueChange={(value) =>
-                              setEditProducto({
-                                ...editProducto,
-                                marcaId: Number(value),
-                              })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Marca" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {marcas.map((marca) => (
-                                <SelectItem key={marca.id} value={marca.id.toString()}>
-                                  {marca.nombre}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select
-                            defaultValue={editProducto.presentacionId?.toString() || 'null'}
-                            onValueChange={(value) =>
-                              setEditProducto({
-                                ...editProducto,
-                                presentacionId: value === 'null' ? null : Number(value),
-                              })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Presentación" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {/* Cambiamos el valor vacío por "null" */}
-                              <SelectItem value="null">Sin presentación</SelectItem>
-                              {presentaciones.map((presentacion) => (
-                                <SelectItem
-                                  key={presentacion.id}
-                                  value={presentacion.id.toString()}
-                                >
-                                  {presentacion.nombre}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Input
-                            type="number"
-                            min="0"
-                            placeholder="Stock"
-                            value={editProducto.stock || ''}
-                            onChange={(e) =>
-                              setEditProducto({
-                                ...editProducto,
-                                stock: Math.max(0, Number(e.target.value)),
-                              })
-                            }
-                          />
-                          <Input
-                            type="number"
-                            min="0"
-                            placeholder="Stock Mínimo"
-                            value={editProducto.stock_min || ''}
-                            onChange={(e) =>
-                              setEditProducto({
-                                ...editProducto,
-                                stock_min: Number(e.target.value),
-                              })
-                            }
-                          />
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            placeholder="Precio de Compra"
-                            value={editProducto.precio_compra || ''}
-                            onChange={(e) =>
-                              setEditProducto({
-                                ...editProducto,
-                                precio_compra: Math.max(0, Number(e.target.value)),
-                              })
-                            }
-                          />
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            placeholder="Precio de Venta"
-                            value={editProducto.precio_venta || ''}
-                            onChange={(e) =>
-                              setEditProducto({
-                                ...editProducto,
-                                precio_venta: Math.max(0, Number(e.target.value)),
-                              })
-                            }
-                          />
-                          <Select
-                            defaultValue={editProducto.estado}
-                            onValueChange={(value) =>
-                              setEditProducto({
-                                ...editProducto,
-                                estado: value,
-                              })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Estado" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="VIGENTE">VIGENTE</SelectItem>
-                              <SelectItem value="DESCONTINUADO">DESCONTINUADO</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <label className="text-sm font-medium text-gray-700">
+                            Cod.Interno
+                            <Input
+                              placeholder="Código de Barra"
+                              value={editProducto.codigo_prod || ''}
+                              onChange={(e) =>
+                                setEditProducto({
+                                  ...editProducto,
+                                  codigo_prod: e.target.value,
+                                })
+                              }
+                            />
+                          </label>
+                          <label className="text-sm font-medium text-gray-700">
+                            Nombre
+                            <Input
+                              placeholder="Nombre del Producto"
+                              value={editProducto.nombre || ''}
+                              onChange={(e) =>
+                                setEditProducto({
+                                  ...editProducto,
+                                  nombre: e.target.value,
+                                })
+                              }
+                            />
+                          </label>
+                          <label className="text-sm font-medium text-gray-700">
+                            Categoria
+                            <Select
+                              defaultValue={editProducto.categoriaId?.toString()}
+                              onValueChange={(value) =>
+                                setEditProducto({
+                                  ...editProducto,
+                                  categoriaId: Number(value),
+                                })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Categoría" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categorias.map((categoria) => (
+                                  <SelectItem key={categoria.id} value={categoria.id.toString()}>
+                                    {categoria.nombre}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </label>
+                          <label className="text-sm font-medium text-gray-700">
+                            Marca
+                            <Select
+                              defaultValue={editProducto.marcaId?.toString()}
+                              onValueChange={(value) =>
+                                setEditProducto({
+                                  ...editProducto,
+                                  marcaId: Number(value),
+                                })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Marca" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {marcas.map((marca) => (
+                                  <SelectItem key={marca.id} value={marca.id.toString()}>
+                                    {marca.nombre}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </label>
+                          <label className="text-sm font-medium text-gray-700">
+                            Presentación
+                            <Select
+                              defaultValue={editProducto.presentacionId?.toString() || 'null'}
+                              onValueChange={(value) =>
+                                setEditProducto({
+                                  ...editProducto,
+                                  presentacionId: value === 'null' ? null : Number(value),
+                                })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Presentación" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {/* Cambiamos el valor vacío por "null" */}
+                                <SelectItem value="null">Sin presentación</SelectItem>
+                                {presentaciones.map((presentacion) => (
+                                  <SelectItem
+                                    key={presentacion.id}
+                                    value={presentacion.id.toString()}
+                                  >
+                                    {presentacion.nombre}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </label>
+                          <label className="text-sm font-medium text-gray-700">
+                            Stock
+                            <Input
+                              type="number"
+                              min="0"
+                              placeholder="Stock"
+                              value={editProducto.stock || ''}
+                              onChange={(e) =>
+                                setEditProducto({
+                                  ...editProducto,
+                                  stock: Math.max(0, Number(e.target.value)),
+                                })
+                              }
+                            />
+                          </label>
+                          <label className="text-sm font-medium text-gray-700">
+                            Stock Min
+                            <Input
+                              type="number"
+                              min="0"
+                              placeholder="Stock Mínimo"
+                              value={editProducto.stock_min || ''}
+                              onChange={(e) =>
+                                setEditProducto({
+                                  ...editProducto,
+                                  stock_min: Number(e.target.value),
+                                })
+                              }
+                            />
+                          </label>
+                          <label className="text-sm font-medium text-gray-700">
+                            Precio Compra
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="Precio de Compra"
+                              value={editProducto.precio_compra || ''}
+                              onChange={(e) =>
+                                setEditProducto({
+                                  ...editProducto,
+                                  precio_compra: Math.max(0, Number(e.target.value)),
+                                })
+                              }
+                            />
+                          </label>
+                          <label className="text-sm font-medium text-gray-700">
+                            Precio Venta
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="Precio de Venta"
+                              value={editProducto.precio_venta || ''}
+                              onChange={(e) =>
+                                setEditProducto({
+                                  ...editProducto,
+                                  precio_venta: Math.max(0, Number(e.target.value)),
+                                })
+                              }
+                            />
+                          </label>
+                          <label className="text-sm font-medium text-gray-700">
+                            Estado
+                            <Select
+                              defaultValue={editProducto.estado}
+                              onValueChange={(value) =>
+                                setEditProducto({
+                                  ...editProducto,
+                                  estado: value,
+                                })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Estado" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="VIGENTE">VIGENTE</SelectItem>
+                                <SelectItem value="DESCONTINUADO">DESCONTINUADO</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </label>
 
                           {/*AGREGAMOS EL CAMPO DE IMAGEN Y SU VISTA PREVIA*/}
                           <div className="col-span-2 grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-2">
-                              <label className="text-sm font-medium">Imagen del Producto</label>
-                              <Input
-                                type="file"
-                                className="file:mr-4 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                                accept="image/*"
-                                onChange={(e) => handleImageChange(e, true)}
-                              />
+                              <label className="text-sm font-medium text-gray-700">
+                                Imagen
+                                <Input
+                                  type="file"
+                                  className="file:mr-4 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                                  accept="image/*"
+                                  onChange={(e) => handleImageChange(e, true)}
+                                />
+                              </label>
                             </div>
                             {editPreviewImage && (
                               <div className="flex items-center justify-center">
@@ -868,7 +993,7 @@ export default function ProductosPage() {
             ))}
           </TableBody>
         </Table>
-
+        {/*NUMERAL DE PAGINACION*/}
         <div className="flex justify-center mt-4">
           <Pagination>
             <PaginationContent>

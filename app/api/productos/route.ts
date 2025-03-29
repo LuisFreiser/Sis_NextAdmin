@@ -22,7 +22,7 @@ export async function GET() {
   }
 }
 
-// POST: Crear un nuevo producto
+// POST: CREAR UN NUEVO PRODUCTO
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Si no hay imagen, usar la imagen por defecto
-    let imagePath = '/no-image.jpg';
+    let imagePath = '/no-image.png';
 
     // Crear primero el producto para obtener el ID
     const newProducto = await prisma.productos.create({
@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
 export async function PUT(request: Request) {
   try {
     const producto = await request.json();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, marca, categoria, presentacion, createdAt, ...productoData } = producto;
 
     // Manejar la imagen
@@ -91,7 +92,7 @@ export async function PUT(request: Request) {
     if (productoData.imagen && productoData.imagen.startsWith('data:image')) {
       imagePath = await saveImageFromBase64(productoData.imagen, Number(id));
     } else if (!productoData.imagen) {
-      imagePath = '/no-image.jpg';
+      imagePath = '/no-image.png';
     }
 
     // Actualizar el producto con la nueva ruta de imagen

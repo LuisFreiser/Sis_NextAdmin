@@ -24,7 +24,17 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Loader2, Home, ChevronRight, FilePlus2, FilePenLine, Search, Printer } from 'lucide-react';
+import {
+  Loader2,
+  Home,
+  ChevronRight,
+  FilePlus2,
+  FilePenLine,
+  Search,
+  Printer,
+  SquarePen,
+  Save,
+} from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -41,25 +51,27 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 
+//DEFINIMOS EL TIPO DE DATOS DE LAS MARCAS
 type Marca = {
   id: number;
   nombre: string;
-  estado: 'VIGENTE' | 'DESCONTINUADO';
+  estado: 'ACTIVO' | 'INACTIVO';
 };
 
+//FUNCIONES DE LA PAGINA MARCAS
 export default function MarcasPage() {
   const [marcas, setMarcas] = useState<Marca[]>([]);
   const [loading, setLoading] = useState(true);
   const [nuevaMarca, setNuevaMarca] = useState<Partial<Marca>>({
     nombre: '',
-    estado: 'VIGENTE',
+    estado: 'ACTIVO',
   });
   const [editMarca, setEditMarca] = useState<Partial<Marca> | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   // ESTADOS PARA PAGINACION DE MARCAS
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 4;
+  const itemsPerPage = 9;
 
   // FUNCION PARA OBTENER TODAS LAS MARCAS
   useEffect(() => {
@@ -105,7 +117,7 @@ export default function MarcasPage() {
 
           if (response.ok) {
             setMarcas((prev) => [...prev, data]);
-            setNuevaMarca({ nombre: '', estado: 'VIGENTE' });
+            setNuevaMarca({ nombre: '', estado: 'ACTIVO' });
             resolve('success');
           } else {
             reject(data.message || 'Error al crear la marca');
@@ -168,36 +180,20 @@ export default function MarcasPage() {
     marca.nombre.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // FUNCION PARA LA PAGINACION DE MARCAS
-  const paginatedMarcas = filteredMarcas.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-  const totalPages = Math.ceil(filteredMarcas.length / itemsPerPage);
-
-  // LOADER DE MARCAS
-  if (loading)
-    return (
-      <div className="fixed inset-0 z-50 flex justify-center items-center h-full">
-        <Loader2 className="mr-2 h-12 w-12 animate-spin" />
-        <p>Cargando Marcas...</p>
-      </div>
-    );
-
   // FUNCION PARA IMPRIMIR REPORTE DE MARCAS
   const handleImprimirReporte = () => {
     const doc = new jsPDF();
 
-    // Configurar el título
+    // CONFIGURAR EL TITULO DEL REPORTE
     doc.setFontSize(20);
     doc.text('Reporte de Marcas', 75, 22);
     doc.setFontSize(11);
-    doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 30);
+    doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 94, 30);
 
-    // Preparar los datos para la tabla
+    // PREPARAR LOS DATOS DE LA TABLA
     const tableRows = marcas.map((marca) => [marca.id, marca.nombre, marca.estado]);
 
-    // Generar la tabla
+    // GENERAR LA TABLA CON JSPDF
     autoTable(doc, {
       head: [['ID', 'Nombre', 'Estado']],
       body: tableRows,
@@ -215,13 +211,38 @@ export default function MarcasPage() {
       },
     });
 
-    // Guardar el PDF
+    // GUADAR EL REPORTE PDF
     doc.save('reporte-marcas.pdf');
     toast.success('Reporte generado exitosamente');
   };
 
+  // LOADER DE PAGINA DE MARCAS
+  if (loading) {
+    return (
+      <div className="container mt-4 p-4 rounded-lg shadow-lg">
+        <div className="flex justify-center items-center min-h-[600px]">
+          <div className="bg-card p-6 rounded-lg shadow-lg flex flex-col items-center gap-4 animate-pulse">
+            <div className="relative">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              <div className="absolute inset-0 border-t-4 border-primary rounded-full animate-ping" />
+            </div>
+            <p className="text-muted-foreground">Cargando Marcas...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // FUNCION PARA LA PAGINACION DE MARCAS
+  const paginatedMarcas = filteredMarcas.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  const totalPages = Math.ceil(filteredMarcas.length / itemsPerPage);
+
+  // TARJETA TOTAL DE MARCAS
   return (
-    <div className="container mx-auto p-4 rounded-lg shadow-lg bg-white dark:bg-slate-900 dark:shadow-slate-700">
+    <div className="container max-w-[83rem] mt-4 p-4 rounded-lg shadow-lg border bg-white dark:bg-slate-900 dark:shadow-slate-700">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-semibold">Marcas</h1>
@@ -235,54 +256,66 @@ export default function MarcasPage() {
           </div>
         </div>
 
-        {/* BOTON DIALOGO PARA CREAR UNA NUEVA  */}
+        {/* BOTON DIALOGO PARA CREAR UNA NUEVA MARCA */}
         <div className="flex gap-2">
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="mb-4">
+              <Button className="mb-4 font-semibold">
                 <FilePlus2 /> Agregar Marca
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Crear Nueva Marca</DialogTitle>
+                <DialogTitle>
+                  {' '}
+                  <SquarePen className="inline mr-2" />
+                  Registrar Marca
+                </DialogTitle>
               </DialogHeader>
               <div className="grid gap-4">
-                <Input
-                  placeholder="Nombre"
-                  value={nuevaMarca.nombre || ''}
-                  onChange={(e) =>
-                    setNuevaMarca({
-                      ...nuevaMarca,
-                      nombre: e.target.value,
-                    })
-                  }
-                />
-
-                <Select
-                  onValueChange={(value) =>
-                    setNuevaMarca({
-                      ...nuevaMarca,
-                      estado: value as 'VIGENTE' | 'DESCONTINUADO',
-                    })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Estado" defaultValue="VIGENTE" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="VIGENTE">VIGENTE</SelectItem>
-                    <SelectItem value="DESCONTINUADO">DESCONTINUADO</SelectItem>
-                  </SelectContent>
-                </Select>
-
+                <label className="text-sm font-medium">
+                  Nombre
+                  <Input
+                    placeholder="Nombre"
+                    className="ring-offset-0 focus-visible:ring-offset-0"
+                    value={nuevaMarca.nombre || ''}
+                    onChange={(e) =>
+                      setNuevaMarca({
+                        ...nuevaMarca,
+                        nombre: e.target.value,
+                      })
+                    }
+                  />
+                </label>
+                <label className="text-sm font-medium">
+                  Estado
+                  <Select
+                    onValueChange={(value) =>
+                      setNuevaMarca({
+                        ...nuevaMarca,
+                        estado: value as 'ACTIVO' | 'INACTIVO',
+                      })
+                    }
+                  >
+                    <SelectTrigger className="w-full !ring-offset-0 focus-visible:!ring-offset-0">
+                      <SelectValue placeholder="VIGENTE" defaultValue="VIGENTE" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ACTIVO">ACTIVO</SelectItem>
+                      <SelectItem value="INACTIVO">INACTIVO</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </label>
                 <DialogClose asChild>
-                  <Button onClick={handleCrearMarca}>Crear Marca</Button>
+                  <Button className="font-semibold" onClick={handleCrearMarca}>
+                    <Save />
+                    GUARDAR
+                  </Button>
                 </DialogClose>
               </div>
             </DialogContent>
           </Dialog>
-          <Button className="mb-4" onClick={handleImprimirReporte}>
+          <Button className="mb-4 font-semibold" onClick={handleImprimirReporte}>
             <Printer />
             Imprimir Reporte
           </Button>
@@ -304,7 +337,7 @@ export default function MarcasPage() {
         />
       </div>
 
-      {/* TABLA EN PANTALLAS GRANDE DESKTOP */}
+      {/* TABLA MARCAS EN PANTALLAS GRANDE DESKTOP */}
       <div className="hidden border md:block">
         <Table>
           <TableHeader>
@@ -317,21 +350,22 @@ export default function MarcasPage() {
           </TableHeader>
           <TableBody>
             {paginatedMarcas.map((marca) => (
-              <TableRow key={marca.id} className="h-8">
-                <TableCell className="py-1">{marca.id}</TableCell>
-                <TableCell className="py-1">{marca.nombre}</TableCell>
-                <TableCell className="py-1">
+              <TableRow key={marca.id} className="hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
+                <TableCell>{marca.id}</TableCell>
+                <TableCell>{marca.nombre}</TableCell>
+                <TableCell>
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      marca.estado === 'VIGENTE'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-gray-100 text-gray-700'
+                      marca.estado === 'ACTIVO'
+                        ? 'bg-green-600 text-gray-100'
+                        : 'bg-gray-600 text-gray-100'
                     }`}
                   >
                     {marca.estado}
                   </span>
                 </TableCell>
                 <TableCell className="py-1">
+                  {/* BOTON DIALOGO PARA EDITAR UNA NUEVA MARCA */}
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button
@@ -345,41 +379,52 @@ export default function MarcasPage() {
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Editar Marca</DialogTitle>
+                        <DialogTitle>
+                          <FilePenLine className="inline mr-2" />
+                          Editar Marca
+                        </DialogTitle>
                       </DialogHeader>
                       {editMarca && (
                         <div className="grid gap-4">
-                          <Input
-                            placeholder="Nombre"
-                            value={editMarca.nombre || ''}
-                            onChange={(e) =>
-                              setEditMarca({
-                                ...editMarca,
-                                nombre: e.target.value,
-                              })
-                            }
-                          />
-
-                          <Select
-                            defaultValue={editMarca.estado}
-                            onValueChange={(value) =>
-                              setEditMarca({
-                                ...editMarca,
-                                estado: value as 'VIGENTE' | 'DESCONTINUADO',
-                              })
-                            }
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Estado" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="VIGENTE">VIGENTE</SelectItem>
-                              <SelectItem value="DESCONTINUADO">DESCONTINUADO</SelectItem>
-                            </SelectContent>
-                          </Select>
-
+                          <label className="text-sm font-medium">
+                            Nombre
+                            <Input
+                              placeholder="Nombre"
+                              className="ring-offset-0 focus-visible:ring-offset-0"
+                              value={editMarca.nombre || ''}
+                              onChange={(e) =>
+                                setEditMarca({
+                                  ...editMarca,
+                                  nombre: e.target.value,
+                                })
+                              }
+                            />
+                          </label>
+                          <label className="text-sm font-medium">
+                            Estado
+                            <Select
+                              defaultValue={editMarca.estado}
+                              onValueChange={(value) =>
+                                setEditMarca({
+                                  ...editMarca,
+                                  estado: value as 'ACTIVO' | 'INACTIVO',
+                                })
+                              }
+                            >
+                              <SelectTrigger className="w-full !ring-offset-0 focus-visible:!ring-offset-0">
+                                <SelectValue placeholder="Estado" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="ACTIVO">ACTIVO</SelectItem>
+                                <SelectItem value="INACTIVO">INACTIVO</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </label>
                           <DialogClose asChild>
-                            <Button onClick={handleEditarMarca}>Guardar Cambios</Button>
+                            <Button onClick={handleEditarMarca} className="font-semibold">
+                              <Save />
+                              GUARDAR CAMBIOS
+                            </Button>
                           </DialogClose>
                         </div>
                       )}
@@ -391,14 +436,16 @@ export default function MarcasPage() {
           </TableBody>
         </Table>
 
-        {/* PAGINACIÓN DE LA TABLA */}
+        {/* PAGINACIÓN DE LA TABLA MARCAS */}
         <div className="flex justify-center mt-4">
           <Pagination>
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious
                   aria-disabled={currentPage === 1}
-                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                  className={
+                    currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                  }
                   onClick={(e) => {
                     e.preventDefault();
                     if (currentPage > 1) {
@@ -426,7 +473,9 @@ export default function MarcasPage() {
               <PaginationItem>
                 <PaginationNext
                   aria-disabled={currentPage === totalPages}
-                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+                  className={
+                    currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                  }
                   onClick={(e) => {
                     e.preventDefault();
                     if (currentPage < totalPages) {
@@ -440,7 +489,7 @@ export default function MarcasPage() {
         </div>
       </div>
 
-      {/* TARJETAS PARA PANTALLAS MOBILES */}
+      {/* TARJETAS PARA PANTALLAS PEQUEÑAS MOBILES */}
       <div className="md:hidden grid gap-4">
         {filteredMarcas.map((marca) => (
           <div key={marca.id} className="p-4 border rounded-lg bg-white shadow dark:bg-slate-800">
@@ -452,7 +501,7 @@ export default function MarcasPage() {
               <strong>Estado:</strong>{' '}
               <span
                 className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  marca.estado === 'VIGENTE'
+                  marca.estado === 'ACTIVO'
                     ? 'bg-green-100 text-green-700'
                     : 'bg-gray-100 text-gray-700'
                 }`}
@@ -487,7 +536,7 @@ export default function MarcasPage() {
                         onValueChange={(value) =>
                           setEditMarca({
                             ...editMarca,
-                            estado: value as 'VIGENTE' | 'DESCONTINUADO',
+                            estado: value as 'ACTIVO' | 'INACTIVO',
                           })
                         }
                       >
@@ -495,13 +544,16 @@ export default function MarcasPage() {
                           <SelectValue placeholder="Estado" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="VIGENTE">VIGENTE</SelectItem>
-                          <SelectItem value="DESCONTINUADO">DESCONTINUADO</SelectItem>
+                          <SelectItem value="ACTIVO">ACTIVO</SelectItem>
+                          <SelectItem value="INACTIVO">INACTIVO</SelectItem>
                         </SelectContent>
                       </Select>
 
                       <DialogClose asChild>
-                        <Button onClick={handleEditarMarca}>Guardar Cambios</Button>
+                        <Button onClick={handleEditarMarca}>
+                          <Save />
+                          GUARDAR CAMBIOS
+                        </Button>
                       </DialogClose>
                     </div>
                   )}

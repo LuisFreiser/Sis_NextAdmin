@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { LoginDialog } from '@/components/auth/LoginDialog';
 
-
 export default function DashboardPage() {
   const [showLogin, setShowLogin] = useState(false);
 
@@ -13,7 +12,7 @@ export default function DashboardPage() {
 
   return (
     <main>
-      <LoginDialog open={showLogin} />      
+      <LoginDialog open={showLogin} />
     </main>
   );
 }

@@ -49,14 +49,14 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 
-// DEFINIMOS LOS TIPOS DE DATOS
+// DEFINIMOS LOS TIPOS DE DATOS PARA PROVEEDORES Y TIPOS DE DOCUMENTO
 type TipoDocumento = {
   id: number;
   documento: string;
   estado: string;
 };
 
-type Cliente = {
+type Proveedor = {
   id: number;
   nombre: string;
   tipo_documento_id: number;
@@ -64,44 +64,46 @@ type Cliente = {
   direccion?: string;
   telefono?: string;
   email?: string;
-  tipodocumento: TipoDocumento;
+  estado: 'ACTIVO' | 'INACTIVO';
+  tipoDocumento: TipoDocumento;
 };
 
-export default function ClientesPage() {
-  const [clientes, setClientes] = useState<Cliente[]>([]);
+export default function ProveedoresPage() {
+  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [tiposDocumento, setTiposDocumento] = useState<TipoDocumento[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 9;
 
-  const [nuevoCliente, setNuevoCliente] = useState<Partial<Cliente>>({
+  const [nuevoProveedor, setNuevoProveedor] = useState<Partial<Proveedor>>({
     nombre: '',
     tipo_documento_id: 0,
     nro_documento: '',
     direccion: '',
     telefono: '',
     email: '',
+    estado: 'ACTIVO',
   });
 
-  const [editCliente, setEditCliente] = useState<Partial<Cliente> | null>(null);
+  const [editProveedor, setEditProveedor] = useState<Partial<Proveedor> | null>(null);
 
-  // OBTENER CLIENTES Y TIPOS DE DOCUMENTO
+  // OBTENER PROVEEDORES Y TIPOS DE DOCUMENTO
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [clientesRes, tiposDocumentoRes] = await Promise.all([
-          fetch('/api/clientes'),
+        const [proveedoresRes, tiposDocumentoRes] = await Promise.all([
+          fetch('/api/proveedores'),
           fetch('/api/tipoDocumento'),
         ]);
 
-        if (clientesRes.ok && tiposDocumentoRes.ok) {
-          const [clientesData, tiposDocumentoData] = await Promise.all([
-            clientesRes.json(),
+        if (proveedoresRes.ok && tiposDocumentoRes.ok) {
+          const [proveedoresData, tiposDocumentoData] = await Promise.all([
+            proveedoresRes.json(),
             tiposDocumentoRes.json(),
           ]);
 
-          setClientes(clientesData);
+          setProveedores(proveedoresData);
           setTiposDocumento(tiposDocumentoData);
           toast.success('Datos cargados exitosamente');
         }
@@ -116,9 +118,13 @@ export default function ClientesPage() {
     fetchData();
   }, []);
 
-  // FUNCION PARA CREAR CLIENTES
-  const handleCrearCliente = async () => {
-    if (!nuevoCliente.nombre || !nuevoCliente.tipo_documento_id || !nuevoCliente.nro_documento) {
+  // FUNCION PARA CREAR PROVEEDORES
+  const handleCrearProveedor = async () => {
+    if (
+      !nuevoProveedor.nombre ||
+      !nuevoProveedor.tipo_documento_id ||
+      !nuevoProveedor.nro_documento
+    ) {
       toast.error('Los campos nombre, tipo de documento y número de documento son obligatorios');
       return;
     }
@@ -126,27 +132,28 @@ export default function ClientesPage() {
     toast.promise(
       new Promise(async (resolve, reject) => {
         try {
-          const response = await fetch('/api/clientes', {
+          const response = await fetch('/api/proveedores', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(nuevoCliente),
+            body: JSON.stringify(nuevoProveedor),
           });
 
           const data = await response.json();
 
           if (response.ok) {
-            setClientes((prev) => [...prev, data]);
-            setNuevoCliente({
+            setProveedores((prev) => [...prev, data]);
+            setNuevoProveedor({
               nombre: '',
               tipo_documento_id: 0,
               nro_documento: '',
               direccion: '',
               telefono: '',
               email: '',
+              estado: 'ACTIVO',
             });
             resolve('success');
           } else {
-            reject(data.message || 'Error al crear el cliente');
+            reject(data.message || 'Error al crear el proveedor');
           }
         } catch (error) {
           console.error('Error:', error);
@@ -154,40 +161,41 @@ export default function ClientesPage() {
         }
       }),
       {
-        loading: 'Creando cliente...',
-        success: 'Cliente creado exitosamente',
+        loading: 'Creando proveedor...',
+        success: 'Proveedor creado exitosamente',
         error: (err) => `${err}`,
       }
     );
   };
 
-  // FUNCION PARA EDITAR CLIENTE
-  const handleEditarCliente = async () => {
-    if (!editCliente) return;
+  // FUNCION PARA EDITAR PROVEEDORES
+  const handleEditarProveedor = async () => {
+    if (!editProveedor) return;
 
-    if (!editCliente.nombre || !editCliente.tipo_documento_id || !editCliente.nro_documento) {
+    if (!editProveedor.nombre || !editProveedor.tipo_documento_id || !editProveedor.nro_documento) {
       toast.error('Los campos nombre, tipo de documento y número de documento son obligatorios');
       return;
     }
 
-    // Crear un objeto con solo los campos permitidos
+    // Crear objeto con solo los campos permitidos para actualizar
     const dataToUpdate = {
-      nombre: editCliente.nombre,
-      tipo_documento_id: editCliente.tipo_documento_id,
-      nro_documento: editCliente.nro_documento,
-      direccion: editCliente.direccion || null,
-      telefono: editCliente.telefono || null,
-      email: editCliente.email || null,
+      nombre: editProveedor.nombre,
+      tipo_documento_id: editProveedor.tipo_documento_id,
+      nro_documento: editProveedor.nro_documento,
+      direccion: editProveedor.direccion || null,
+      telefono: editProveedor.telefono || null,
+      email: editProveedor.email || null,
+      estado: editProveedor.estado,
     };
 
     toast.promise(
       new Promise(async (resolve, reject) => {
         try {
-          const response = await fetch('/api/clientes', {
+          const response = await fetch('/api/proveedores', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              id: editCliente.id,
+              id: editProveedor.id,
               ...dataToUpdate,
             }),
           });
@@ -195,11 +203,11 @@ export default function ClientesPage() {
           const data = await response.json();
 
           if (response.ok) {
-            setClientes((prev) => prev.map((c) => (c.id === editCliente.id ? data : c)));
-            setEditCliente(null);
+            setProveedores((prev) => prev.map((p) => (p.id === editProveedor.id ? data : p)));
+            setEditProveedor(null);
             resolve('success');
           } else {
-            reject(data.message || 'Error al actualizar el cliente');
+            reject(data.message || 'Error al actualizar el proveedor');
           }
         } catch (error) {
           console.error('Error:', error);
@@ -207,48 +215,52 @@ export default function ClientesPage() {
         }
       }),
       {
-        loading: 'Actualizando cliente...',
-        success: 'Cliente actualizado exitosamente',
+        loading: 'Actualizando proveedor...',
+        success: 'Proveedor actualizado exitosamente',
         error: (err) => `${err}`,
       }
     );
   };
 
-  // FUNCION PARA FILTRAR CLIENTES
-  const filteredClientes = clientes.filter(
-    (cliente) =>
-      cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cliente.nro_documento.toLowerCase().includes(searchTerm.toLowerCase())
+  // FUNCION PARA FILTRAR PROVEEDORES
+  const filteredProveedores = proveedores.filter(
+    (proveedor) =>
+      proveedor.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      proveedor.nro_documento.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // PAGINACION DE CLIENTES
-  const paginatedClientes = filteredClientes.slice(
+  // PAGINACIÓN
+  const paginatedProveedores = filteredProveedores.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-  const totalPages = Math.ceil(filteredClientes.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredProveedores.length / itemsPerPage);
 
-  // GENERAR PDF DE CLIENTES
+  // GENERAR PDF
   const handleImprimirReporte = () => {
     const doc = new jsPDF();
 
+    // CONFIGURAR EL TÍTULO Y LA FECHA DEL PDF
     doc.setFontSize(20);
-    doc.text('Reporte de Clientes', 75, 22);
+    doc.text('Reporte de Proveedores', 75, 22);
     doc.setFontSize(11);
     doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 94, 30);
 
-    const clientesData = clientes.map((cliente) => [
-      cliente.id.toString(),
-      cliente.nombre,
-      `${cliente.tipodocumento.documento}: ${cliente.nro_documento}`,
-      cliente.direccion || '-',
-      cliente.telefono || '-',
-      cliente.email || '-',
+    // PREPARAR LOS DATOS DE LA TABLA
+    const proveedoresData = proveedores.map((proveedor) => [
+      proveedor.id,
+      proveedor.nombre,
+      `${proveedor.tipoDocumento.documento}: ${proveedor.nro_documento}`,
+      proveedor.direccion || '-',
+      proveedor.telefono || '-',
+      proveedor.email || '-',
+      proveedor.estado,
     ]);
 
+    // GENERAR LA TABLA PARA EL PDF
     autoTable(doc, {
-      head: [['Id', 'Nombre', 'Documento', 'Dirección', 'Teléfono', 'Email']],
-      body: clientesData,
+      head: [['Id', 'Nombre', 'Documento', 'Direción', 'Teléfono', 'Email', 'Estado']],
+      body: proveedoresData,
       startY: 35,
       theme: 'grid',
       styles: {
@@ -262,12 +274,12 @@ export default function ClientesPage() {
         fontStyle: 'bold',
       },
     });
-    //GUARDAR PDF
-    doc.save('reporte-clientes.pdf');
-    toast.success('Reporte Generado Exitosamente');
+
+    // GUADAR EL PDF
+    doc.save('reporte-proveedores.pdf');
   };
 
-  //LOADER DE PAGINA CLIENTES
+  // LOADER DE LA PAGINA PROVEEDORES
   if (loading) {
     return (
       <div className="container mt-4 p-4 rounded-lg shadow-lg">
@@ -277,50 +289,52 @@ export default function ClientesPage() {
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
               <div className="absolute inset-0 border-t-4 border-primary rounded-full animate-ping" />
             </div>
-            <p className="text-muted-foreground">Cargando Clientes...</p>
+            <p className="text-muted-foreground">Cargando Proveedores...</p>
           </div>
         </div>
       </div>
     );
   }
-  //TARJETA TOTAL DE CLIENTES
+  //TARJETA COMPLETA DE PROVEEDORES
   return (
     <div className="container max-w-[83rem] mt-4 p-4 rounded-lg shadow-lg border bg-white dark:bg-slate-900 dark:shadow-slate-700">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-semibold">Clientes</h1>
+          <h1 className="text-3xl font-semibold">Proveedores</h1>
           <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1 mb-5">
             <Home className="w-4 h-4" />
             <span>Dashboard</span>
             <ChevronRight className="w-4 h-4" />
-            <span>Ventas</span>
+            <span>Compras</span>
             <ChevronRight className="w-4 h-4" />
-            <span>Clientes</span>
+            <span>Proveedores</span>
           </div>
         </div>
+
+        {/* BOTÓN PARA CREAR NUEVO PROVEEDOR */}
         <div className="flex gap-2">
           <Dialog>
             <DialogTrigger asChild>
               <Button className="mb-4 font-semibold">
-                <FilePlus2 /> Agregar Cliente
+                <FilePlus2 /> Agregar Proveedor
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>
                   <SquarePen className="inline mr-2" />
-                  Registrar Cliente
+                  Registrar Proveedor
                 </DialogTitle>
               </DialogHeader>
               <div className="grid grid-cols-2 gap-4">
                 <label className="text-sm font-medium">
                   Nombre
                   <Input
-                    placeholder="Nombre del Cliente"
-                    value={nuevoCliente.nombre || ''}
+                    placeholder="Nombre del Proveedor"
+                    value={nuevoProveedor.nombre || ''}
                     onChange={(e) =>
-                      setNuevoCliente({
-                        ...nuevoCliente,
+                      setNuevoProveedor({
+                        ...nuevoProveedor,
                         nombre: e.target.value,
                       })
                     }
@@ -330,8 +344,8 @@ export default function ClientesPage() {
                   Tipo Documento
                   <Select
                     onValueChange={(value) =>
-                      setNuevoCliente({
-                        ...nuevoCliente,
+                      setNuevoProveedor({
+                        ...nuevoProveedor,
                         tipo_documento_id: Number(value),
                       })
                     }
@@ -352,10 +366,10 @@ export default function ClientesPage() {
                   Nro. Documento
                   <Input
                     placeholder="Número de Documento"
-                    value={nuevoCliente.nro_documento || ''}
+                    value={nuevoProveedor.nro_documento || ''}
                     onChange={(e) =>
-                      setNuevoCliente({
-                        ...nuevoCliente,
+                      setNuevoProveedor({
+                        ...nuevoProveedor,
                         nro_documento: e.target.value,
                       })
                     }
@@ -365,10 +379,10 @@ export default function ClientesPage() {
                   Dirección
                   <Input
                     placeholder="Dirección"
-                    value={nuevoCliente.direccion || ''}
+                    value={nuevoProveedor.direccion || ''}
                     onChange={(e) =>
-                      setNuevoCliente({
-                        ...nuevoCliente,
+                      setNuevoProveedor({
+                        ...nuevoProveedor,
                         direccion: e.target.value,
                       })
                     }
@@ -378,10 +392,10 @@ export default function ClientesPage() {
                   Teléfono
                   <Input
                     placeholder="Teléfono"
-                    value={nuevoCliente.telefono || ''}
+                    value={nuevoProveedor.telefono || ''}
                     onChange={(e) =>
-                      setNuevoCliente({
-                        ...nuevoCliente,
+                      setNuevoProveedor({
+                        ...nuevoProveedor,
                         telefono: e.target.value,
                       })
                     }
@@ -392,18 +406,38 @@ export default function ClientesPage() {
                   <Input
                     type="email"
                     placeholder="Email"
-                    value={nuevoCliente.email || ''}
+                    value={nuevoProveedor.email || ''}
                     onChange={(e) =>
-                      setNuevoCliente({
-                        ...nuevoCliente,
+                      setNuevoProveedor({
+                        ...nuevoProveedor,
                         email: e.target.value,
                       })
                     }
                   />
                 </label>
+                <label className="text-sm font-medium">
+                  Estado
+                  <Select
+                    defaultValue="ACTIVO"
+                    onValueChange={(value) =>
+                      setNuevoProveedor({
+                        ...nuevoProveedor,
+                        estado: value as 'ACTIVO' | 'INACTIVO',
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ACTIVO">ACTIVO</SelectItem>
+                      <SelectItem value="INACTIVO">INACTIVO</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </label>
               </div>
               <DialogClose asChild>
-                <Button onClick={handleCrearCliente} className="mt-4 font-semibold">
+                <Button onClick={handleCrearProveedor} className="mt-4 font-semibold">
                   <Save />
                   GUARDAR
                 </Button>
@@ -418,6 +452,7 @@ export default function ClientesPage() {
         </div>
       </div>
 
+      {/* BUSCADOR */}
       <div className="flex-1 mb-4">
         <Input
           type="search"
@@ -432,7 +467,7 @@ export default function ClientesPage() {
         />
       </div>
 
-      {/*TABLA CLIENTES EN PANTALLAS GRANDES DESKTOP*/}
+      {/* TABLA DE PROVEEDORES */}
       <div className="hidden border md:block">
         <Table>
           <TableHeader>
@@ -443,31 +478,43 @@ export default function ClientesPage() {
               <TableHead>Dirección</TableHead>
               <TableHead>Teléfono</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Estado</TableHead>
               <TableHead>Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedClientes.map((cliente) => (
+            {paginatedProveedores.map((proveedor) => (
               <TableRow
-                key={cliente.id}
+                key={proveedor.id}
                 className="hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
               >
-                <TableCell>{cliente.id}</TableCell>
-                <TableCell>{cliente.nombre}</TableCell>
+                <TableCell>{proveedor.id}</TableCell>
+                <TableCell>{proveedor.nombre}</TableCell>
                 <TableCell>
-                  {cliente.tipodocumento.documento}: {cliente.nro_documento}
+                  {proveedor.tipoDocumento.documento}: {proveedor.nro_documento}
                 </TableCell>
-                <TableCell>{cliente.direccion || '-'}</TableCell>
-                <TableCell>{cliente.telefono || '-'}</TableCell>
-                <TableCell>{cliente.email || '-'}</TableCell>
+                <TableCell>{proveedor.direccion || '-'}</TableCell>
+                <TableCell>{proveedor.telefono || '-'}</TableCell>
+                <TableCell>{proveedor.email || '-'}</TableCell>
+                <TableCell>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      proveedor.estado === 'ACTIVO'
+                        ? 'bg-green-600 text-gray-100'
+                        : 'bg-gray-600 text-gray-100'
+                    }`}
+                  >
+                    {proveedor.estado}
+                  </span>
+                </TableCell>
                 <TableCell>
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button
                         variant="default"
                         size="sm"
-                        title="Editar Cliente"
-                        onClick={() => setEditCliente(cliente)}
+                        title="Editar Proveedor"
+                        onClick={() => setEditProveedor(proveedor)}
                       >
                         <FilePenLine />
                       </Button>
@@ -476,19 +523,19 @@ export default function ClientesPage() {
                       <DialogHeader>
                         <DialogTitle>
                           <FilePenLine className="inline mr-2" />
-                          Editar Cliente
+                          Editar Proveedor
                         </DialogTitle>
                       </DialogHeader>
-                      {editCliente && (
+                      {editProveedor && (
                         <div className="grid grid-cols-2 gap-4">
                           <label className="text-sm font-medium">
                             Nombre
                             <Input
-                              placeholder="Nombre del Cliente"
-                              value={editCliente.nombre || ''}
+                              placeholder="Nombre del Proveedor"
+                              value={editProveedor.nombre || ''}
                               onChange={(e) =>
-                                setEditCliente({
-                                  ...editCliente,
+                                setEditProveedor({
+                                  ...editProveedor,
                                   nombre: e.target.value,
                                 })
                               }
@@ -497,10 +544,10 @@ export default function ClientesPage() {
                           <label className="text-sm font-medium">
                             Tipo Documento
                             <Select
-                              defaultValue={editCliente.tipo_documento_id?.toString() || ''}
+                              defaultValue={editProveedor.tipo_documento_id?.toString() || ''}
                               onValueChange={(value) =>
-                                setEditCliente({
-                                  ...editCliente,
+                                setEditProveedor({
+                                  ...editProveedor,
                                   tipo_documento_id: Number(value),
                                 })
                               }
@@ -521,10 +568,10 @@ export default function ClientesPage() {
                             Nro. Documento
                             <Input
                               placeholder="Número de Documento"
-                              value={editCliente.nro_documento || ''}
+                              value={editProveedor.nro_documento || ''}
                               onChange={(e) =>
-                                setEditCliente({
-                                  ...editCliente,
+                                setEditProveedor({
+                                  ...editProveedor,
                                   nro_documento: e.target.value,
                                 })
                               }
@@ -534,10 +581,10 @@ export default function ClientesPage() {
                             Dirección
                             <Input
                               placeholder="Dirección"
-                              value={editCliente.direccion || ''}
+                              value={editProveedor.direccion || ''}
                               onChange={(e) =>
-                                setEditCliente({
-                                  ...editCliente,
+                                setEditProveedor({
+                                  ...editProveedor,
                                   direccion: e.target.value,
                                 })
                               }
@@ -547,10 +594,10 @@ export default function ClientesPage() {
                             Teléfono
                             <Input
                               placeholder="Teléfono"
-                              value={editCliente.telefono || ''}
+                              value={editProveedor.telefono || ''}
                               onChange={(e) =>
-                                setEditCliente({
-                                  ...editCliente,
+                                setEditProveedor({
+                                  ...editProveedor,
                                   telefono: e.target.value,
                                 })
                               }
@@ -561,19 +608,39 @@ export default function ClientesPage() {
                             <Input
                               type="email"
                               placeholder="Email"
-                              value={editCliente.email || ''}
+                              value={editProveedor.email || ''}
                               onChange={(e) =>
-                                setEditCliente({
-                                  ...editCliente,
+                                setEditProveedor({
+                                  ...editProveedor,
                                   email: e.target.value,
                                 })
                               }
                             />
                           </label>
+                          <label className="text-sm font-medium">
+                            Estado
+                            <Select
+                              defaultValue={editProveedor.estado}
+                              onValueChange={(value) =>
+                                setEditProveedor({
+                                  ...editProveedor,
+                                  estado: value as 'ACTIVO' | 'INACTIVO',
+                                })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Estado" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="ACTIVO">ACTIVO</SelectItem>
+                                <SelectItem value="INACTIVO">INACTIVO</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </label>
                         </div>
                       )}
                       <DialogClose asChild>
-                        <Button onClick={handleEditarCliente} className="mt-4 font-semibold">
+                        <Button onClick={handleEditarProveedor} className="mt-4 font-semibold">
                           <Save />
                           GUARDAR CAMBIOS
                         </Button>
@@ -587,7 +654,7 @@ export default function ClientesPage() {
         </Table>
       </div>
 
-      {/*PAGINACION DE LA TABLA CLIENTES*/}
+      {/* PAGINACIÓN DE PROVEEDORES */}
       <div className="flex justify-center mt-4">
         <Pagination>
           <PaginationContent>

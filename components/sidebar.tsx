@@ -11,9 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 // Actualizar las importaciones de iconos
 import {
   Package,
-  Tags,
   BookmarkCheck,
-  Box,
   Store,
   ShoppingCart,
   ClipboardList,
@@ -29,13 +27,11 @@ import {
 
 const almacenMenuItems = [
   { icon: Package, label: 'Productos', path: '/productos' },
-  { icon: Tags, label: 'Categorias', path: '/categorias' },
   { icon: BookmarkCheck, label: 'Marcas', path: '/marcas' },
-  { icon: Box, label: 'Presentación', path: '/presentacion' },
 ];
 
 const comprasMenuItems = [
-  { icon: Store, label: 'Proveedores', path: '' },
+  { icon: Store, label: 'Proveedores', path: '/proveedores' },
   { icon: ShoppingCart, label: 'Registrar Compras', path: '/compras' },
   { icon: ClipboardList, label: 'Consultar Compras', path: '/profile' },
 ];
@@ -52,6 +48,12 @@ const reportesMenuItems = [
   { icon: Users, label: 'Ventas Diarias', path: '' },
   { icon: Receipt, label: 'Registrar Ventas', path: '/compras' },
   { icon: FileSearch, label: 'Consultar Ventas', path: '/profile' },
+];
+
+const documentosMenuItems = [
+  { icon: Users, label: 'Tipo Documento', path: '/tipoDocumento' },
+  { icon: Receipt, label: 'Tipo Comprobante', path: '' },
+  { icon: FileSearch, label: 'Serie Comprobante', path: '' },
 ];
 
 const supportMenuItems = [
@@ -89,97 +91,14 @@ function SidebarContent() {
         </div>
 
         <nav className="space-y-4">
-          {/* Menu de almacen */}
+          {/* MENU PRINCIPAL */}
           <div>
             {isOpen && (
               <p className="text-sm font-medium text-muted-foreground mb-4">MENU PRINCIPAL</p>
             )}
-            <Collapsible
-              open={activeMenu === 'almacen'}
-              onOpenChange={() => handleMenuToggle('almacen')}
-              className="transition-all duration-500 ease-in-out"
-            >
-              <div className="space-y-1">
-                <div className="flex items-center justify-stretch space-x-4 px-4">
-                  <h4 className="text-lg font-semibold">Almacen</h4>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <ChevronUp
-                        className={cn(
-                          'h-4 w-4 transition-transform duration-300',
-                          activeMenu !== 'almacen' && 'rotate-180'
-                        )}
-                      />
-                      <span className="sr-only">Toggle</span>
-                    </Button>
-                  </CollapsibleTrigger>
-                </div>
-                <CollapsibleContent className="transition-all duration-500 ease-in-out">
-                  {almacenMenuItems.map((item) => (
-                    <Link key={item.path} href={item.path}>
-                      <Button
-                        variant="ghost"
-                        className={cn(
-                          'w-full justify-start gap-2',
-                          !isOpen && 'justify-center px-2',
-                          item.path === '/pages' && 'text-primary'
-                        )}
-                      >
-                        <item.icon className="w-6 h-6 shrink-0" />
-                        {isOpen && <span>{item.label}</span>}
-                        {!isOpen && <span className="sr-only">{item.label}</span>}
-                      </Button>
-                    </Link>
-                  ))}
-                </CollapsibleContent>
-              </div>
-            </Collapsible>
           </div>
 
-          {/* Menu de compras */}
-          <div>
-            <Collapsible
-              open={activeMenu === 'compras'}
-              onOpenChange={() => handleMenuToggle('compras')}
-            >
-              <div className="space-y-1">
-                <div className="flex items-center justify-stretch space-x-4 px-4">
-                  <h4 className="text-lg font-semibold">Compras</h4>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <ChevronUp
-                        className={cn(
-                          'h-4 w-4 transition-transform duration-300',
-                          activeMenu !== 'compras' && 'rotate-180'
-                        )}
-                      />
-                      <span className="sr-only">Toggle</span>
-                    </Button>
-                  </CollapsibleTrigger>
-                </div>
-                <CollapsibleContent>
-                  {comprasMenuItems.map((item) => (
-                    <Link key={item.path} href={item.path}>
-                      <Button
-                        variant="ghost"
-                        className={cn(
-                          'w-full justify-start gap-2',
-                          !isOpen && 'justify-center px-2',
-                          item.path === '/pages' && 'text-primary'
-                        )}
-                      >
-                        <item.icon className="w-6 h-6 shrink-0" />
-                        {isOpen && <span>{item.label}</span>}
-                        {!isOpen && <span className="sr-only">{item.label}</span>}
-                      </Button>
-                    </Link>
-                  ))}
-                </CollapsibleContent>
-              </div>
-            </Collapsible>
-          </div>
-
-          {/* Menu de Ventas */}
+          {/* MENU DE VENTAS */}
           <div>
             <Collapsible
               open={activeMenu === 'ventas'}
@@ -222,7 +141,94 @@ function SidebarContent() {
             </Collapsible>
           </div>
 
-          {/* Menu de Usuarios */}
+          {/* MENU DE COMPRAS */}
+          <div>
+            <Collapsible
+              open={activeMenu === 'compras'}
+              onOpenChange={() => handleMenuToggle('compras')}
+            >
+              <div className="space-y-1">
+                <div className="flex items-center justify-stretch space-x-4 px-4">
+                  <h4 className="text-lg font-semibold">Compras</h4>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <ChevronUp
+                        className={cn(
+                          'h-4 w-4 transition-transform duration-300',
+                          activeMenu !== 'compras' && 'rotate-180'
+                        )}
+                      />
+                      <span className="sr-only">Toggle</span>
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
+                <CollapsibleContent>
+                  {comprasMenuItems.map((item) => (
+                    <Link key={item.path} href={item.path}>
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          'w-full justify-start gap-2',
+                          !isOpen && 'justify-center px-2',
+                          item.path === '/pages' && 'text-primary'
+                        )}
+                      >
+                        <item.icon className="w-6 h-6 shrink-0" />
+                        {isOpen && <span>{item.label}</span>}
+                        {!isOpen && <span className="sr-only">{item.label}</span>}
+                      </Button>
+                    </Link>
+                  ))}
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
+          </div>
+
+          {/* MENU DE ALMACENES */}
+          <div>
+            <Collapsible
+              open={activeMenu === 'almacen'}
+              onOpenChange={() => handleMenuToggle('almacen')}
+              className="transition-all duration-500 ease-in-out"
+            >
+              <div className="space-y-1">
+                <div className="flex items-center justify-stretch space-x-4 px-4">
+                  <h4 className="text-lg font-semibold">Almacen</h4>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <ChevronUp
+                        className={cn(
+                          'h-4 w-4 transition-transform duration-300',
+                          activeMenu !== 'almacen' && 'rotate-180'
+                        )}
+                      />
+                      <span className="sr-only">Toggle</span>
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
+                <CollapsibleContent className="transition-all duration-500 ease-in-out">
+                  {almacenMenuItems.map((item) => (
+                    <Link key={item.path} href={item.path}>
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          'w-full justify-start gap-2',
+                          !isOpen && 'justify-center px-2',
+                          item.path === '/pages' && 'text-primary'
+                        )}
+                      >
+                        <item.icon className="w-6 h-6 shrink-0" />
+                        {isOpen && <span>{item.label}</span>}
+                        {!isOpen && <span className="sr-only">{item.label}</span>}
+                      </Button>
+                    </Link>
+                  ))}
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
+          </div>
+
+          {/* MENU DE USUARIOS */}
           <div>
             <Collapsible
               open={activeMenu === 'usuarios'}
@@ -266,7 +272,7 @@ function SidebarContent() {
             </Collapsible>
           </div>
 
-          {/* Menu de Reportes */}
+          {/* MENU DE REPORTES */}
           <div>
             <Collapsible
               open={activeMenu === 'reportes'}
@@ -309,7 +315,50 @@ function SidebarContent() {
             </Collapsible>
           </div>
 
-          {/* Menu de soporte */}
+          {/* MENU DE DOCUMENTOS */}
+          <div>
+            <Collapsible
+              open={activeMenu === 'documentos'}
+              onOpenChange={() => handleMenuToggle('documentos')}
+            >
+              <div className="space-y-1">
+                <div className="flex items-center justify-stretch space-x-4 px-4">
+                  <h4 className="text-lg font-semibold">Documentos</h4>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <ChevronUp
+                        className={cn(
+                          'h-4 w-4 transition-transform duaration-300',
+                          activeMenu !== 'documentos' && 'rotate-180'
+                        )}
+                      />
+                      <span className="sr-only">Toggle</span>
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
+                <CollapsibleContent>
+                  {documentosMenuItems.map((item) => (
+                    <Link key={item.path} href={item.path}>
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          'w-full justify-start gap-2',
+                          !isOpen && 'justify-center px-2',
+                          item.path === '/pages' && 'text-primary'
+                        )}
+                      >
+                        <item.icon className="w-6 h-6 shrink-0" />
+                        {isOpen && <span>{item.label}</span>}
+                        {!isOpen && <span className="sr-only">{item.label}</span>}
+                      </Button>
+                    </Link>
+                  ))}
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
+          </div>
+
+          {/* MENU DE SOPORTE */}
           <div>
             {isOpen && <p className="text-sm font-medium text-muted-foreground mb-4">SOPORTE</p>}
             <div className="space-y-1">
@@ -337,7 +386,7 @@ function SidebarContent() {
   );
 }
 
-//Funcion para el sidebar del Mobile
+//FUNCION PARA MOSTRAR EL SIDEBAR EN MOVIL
 export function AppSidebar() {
   const { isOpen, isMobile, toggle } = useSidebar();
 

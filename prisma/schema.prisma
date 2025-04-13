@@ -10,211 +10,204 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Categorias {
-  id        Int      @id @default(autoincrement())
-  nombre    String   @unique
-  estado    String   @default("VIGENTE")
-  productos Productos[]
-}
-
 model Clientes {
-  id            Int       @id @default(autoincrement())
-  nombre        String
-  nro_documento String   @unique
-  tipo_documento String
-  email         String?
-  telefono      String?
-  direccion     String?
-  createdAt     DateTime @default(now())
+  id                Int      @id @default(autoincrement())
+  nombre            String
+  nro_documento     String   @unique
+  tipo_documento_id Int
+  email             String?
+  telefono          String?
+  direccion         String?
+  createdAt         DateTime @default(now())
+
+  tipodocumento TipoDocumento @relation(fields: [tipo_documento_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   ventas Ventas[]
 }
 
-model Marcas {
-  id        Int      @id @default(autoincrement())
-  nombre    String   @unique
-  estado    String   @default("VIGENTE")
+model Marca {
+  id        Int         @id @default(autoincrement())
+  nombre    String      @unique
+  estado    String      @default("ACTIVO")
   productos Productos[]
 }
 
+model TipoDocumento {
+  id          Int           @id @default(autoincrement())
+  documento   String        @unique
+  estado      String        @default("ACTIVO")
+  proveedores Proveedores[]
+  clientes    Clientes[]
+}
+
 model Proveedores {
-  id            Int       @id @default(autoincrement())
-  nombre        String
-  nro_documento String   @unique
-  tipo_documento String?
-  contacto      String?
-  telefono      String?
-  email         String?
-  direccion     String?
-  ciudad        String?
-  estado        String   @default("VIGENTE")
-  createdAt     DateTime @default(now())
+  id                Int      @id @default(autoincrement())
+  nombre            String
+  tipo_documento_id Int
+  nro_documento     String   @unique
+  direccion         String?
+  telefono          String?
+  email             String?  @unique
+  estado            String   @default("ACTIVO")
+  createdAt         DateTime @default(now())
+
+  tipoDocumento TipoDocumento @relation(fields: [tipo_documento_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   compras Compras[]
 }
 
 model Usuarios {
-  id         Int       @id @default(autoincrement())
-  nombre     String
-  email      String   @unique
-  password   String
-  rol      String
-  estado     String   @default("ACTIVO")
-  createdAt  DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  email     String   @unique
+  password  String
+  rol       String
+  estado    String   @default("ACTIVO")
+  createdAt DateTime @default(now())
 
-  ventas            Ventas[]
-  compras           Compras[]
+  ventas             Ventas[]
+  compras            Compras[]
   AperturaCierreCaja AperturaCierreCaja[]
-  Caja              Caja[]
+  Caja               Caja[]
 }
 
 model Productos {
-  id             Int      @id @default(autoincrement())
-  codigo_prod    String   @unique
-  nombre         String
-  precio_compra  Float
-  precio_venta   Float
-  stock          Int
-  stock_min      Int?
-  categoriaId    Int
-  marcaId        Int
-  presentacionId Int?
-  imagen         String?
-  estado         String   @default("VIGENTE")
-  createdAt      DateTime @default(now())
+  id                Int      @id @default(autoincrement())
+  codigo_prod       String   @unique
+  nombre            String
+  marcaId           Int
+  unidades_por_caja Int?
+  stock_cajas       Int      @default(0)
+  stock_unidades    Int?
+  stock_min_cajas   Int?
+  precio_compra     Float
+  precio_venta_caja Float    @default(0)
+  precio_venta_unit Float    @default(0)
+  imagen            String?
+  estado            String   @default("ACTIVO")
+  createdAt         DateTime @default(now())
 
-  categoria    Categorias    @relation(fields: [categoriaId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  marca        Marcas        @relation(fields: [marcaId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  presentacion Presentacion? @relation(fields: [presentacionId], references: [id])
-  detallesVentas DetallesVentas[]
-  detallesCompras DetallesCompras[]
-  lotes_producto LotesProducto[]
-
+  marca          Marca            @relation(fields: [marcaId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  detalleVentas  DetalleVentas[]
+  detalleCompras DetalleCompras[]
+  lote_producto  LoteProducto[]
 }
 
 model Ventas {
-  id                 Int      @id @default(autoincrement())
-  nro_comprobante    String   @unique
-  clienteId          Int
-  fecha_venta        DateTime @default(now())
-  tipo_pago          String
+  id                  Int      @id @default(autoincrement())
+  nro_comprobante     String   @unique
+  clienteId           Int
+  fecha_venta         DateTime @default(now())
+  tipo_pago           String
   tipo_comprobante_id Int?
-  estado             String   @default("PENDIENTE")
-  usuarioId          Int
+  estado              String   @default("PENDIENTE")
+  usuarioId           Int
 
-  cliente         Clientes         @relation(fields: [clienteId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  usuario         Usuarios         @relation(fields: [usuarioId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  detallesVentas  DetallesVentas[]
-  tipos_comprobante TiposComprobante? @relation(fields: [tipo_comprobante_id], references: [id])
+  cliente          Clientes         @relation(fields: [clienteId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  usuario          Usuarios         @relation(fields: [usuarioId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  detalleVentas    DetalleVentas[]
+  tipo_comprobante TipoComprobante? @relation(fields: [tipo_comprobante_id], references: [id])
 }
 
-model DetallesVentas {
+model DetalleVentas {
   id           Int   @id @default(autoincrement())
   ventaId      Int
   productoId   Int
   cantidad     Int
   precio_venta Float
-  descuento    Float @default(0)  
+  descuento    Float @default(0)
 
-  venta     Ventas    @relation(fields: [ventaId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  producto  Productos @relation(fields: [productoId], references: [id], onDelete: Restrict, onUpdate: Cascade)  
+  venta    Ventas    @relation(fields: [ventaId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  producto Productos @relation(fields: [productoId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 }
 
 model Compras {
-  id                 Int      @id @default(autoincrement())
-  nro_comprobante    String?
-  proveedorId        Int
-  fecha_compra       DateTime @default(now())
-  tipo_pago          String
+  id                  Int      @id @default(autoincrement())
+  nro_comprobante     String?
+  proveedorId         Int
+  fecha_compra        DateTime @default(now())
+  tipo_pago           String
   tipo_comprobante_id Int?
-  estado             String   @default("PENDIENTE")
-  usuarioId          Int
+  estado              String   @default("PENDIENTE")
+  usuarioId           Int
 
-  proveedor         Proveedores         @relation(fields: [proveedorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  usuario         Usuarios         @relation(fields: [usuarioId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  detallesCompras  DetallesCompras[]
-  tipos_comprobante TiposComprobante? @relation(fields: [tipo_comprobante_id], references: [id])
+  proveedor        Proveedores      @relation(fields: [proveedorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  usuario          Usuarios         @relation(fields: [usuarioId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  detalleCompras   DetalleCompras[]
+  tipo_comprobante TipoComprobante? @relation(fields: [tipo_comprobante_id], references: [id])
 }
 
-model DetallesCompras {
-  id           Int   @id @default(autoincrement())
-  compraId     Int
-  productoId   Int
-  cantidad     Int
-  precio_compra Float  
+model DetalleCompras {
+  id            Int   @id @default(autoincrement())
+  compraId      Int
+  productoId    Int
+  cantidad      Int
+  precio_compra Float
 
-  compra    Compras   @relation(fields: [compraId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  producto  Productos @relation(fields: [productoId], references: [id], onDelete: Restrict, onUpdate: Cascade)  
+  compra   Compras   @relation(fields: [compraId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  producto Productos @relation(fields: [productoId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 }
 
-model Presentacion {
-  id        Int      @id @default(autoincrement())
-  nombre    String
-  siglas    String
-  estado    String   @default("VIGENTE")
-  productos Productos[]
-}
-
-model LotesProducto {
-  id             Int       @id @default(autoincrement())
-  productoId     Int
-  fecha_ingreso  DateTime
+model LoteProducto {
+  id                Int      @id @default(autoincrement())
+  productoId        Int
+  fecha_ingreso     DateTime
   fecha_vencimiento DateTime
-  numero_lote    String?
-  nro_orden_compra String?
+  numero_lote       String?
+  nro_orden_compra  String?
 
   producto Productos @relation(fields: [productoId], references: [id])
 }
 
-model TiposComprobante {
-  id          Int      @id @default(autoincrement())
+model TipoComprobante {
+  id          Int       @id @default(autoincrement())
+  codigo      String    @unique
   comprobante String
-  estado      String   @default("VIGENTE")
-  Ventas      Ventas[]
-  Compras     Compras[]
+  estado      String    @default("ACTIVO")
+  ventas      Ventas[]
+  compras     Compras[]
 }
 
 model AperturaCierreCaja {
-  id               Int       @id @default(autoincrement())
-  usuarioId        Int
-  fecha_apertura DateTime @default(now())
-  mont_inicial     Float
-  fecha_cierre  DateTime?
-  monto_Final       Float?
-  diferencia       Float?
-  observaciones    String?
-  estado           String   @default("ABIERTO")
+  id             Int       @id @default(autoincrement())
+  usuarioId      Int
+  fecha_apertura DateTime  @default(now())
+  monto_inicial  Float
+  fecha_cierre   DateTime?
+  monto_final    Float?
+  diferencia     Float?
+  observaciones  String?
+  estado         String    @default("ABIERTA")
 
   usuario Usuarios @relation(fields: [usuarioId], references: [id])
   caja    Caja[]
 }
 
 model Caja {
-  id               Int    @id @default(autoincrement())
+  id               Int     @id @default(autoincrement())
   aperturaCierreId Int
-  tipo_Movimiento   String
+  tipo_movimiento  String
   usuarioId        Int
-  metodo_pago       String?
+  metodo_pago      String?
   descripcion      String?
 
   aperturaCierreCaja AperturaCierreCaja @relation(fields: [aperturaCierreId], references: [id])
-  usuario            Usuarios          @relation(fields: [usuarioId], references: [id])
+  usuario            Usuarios           @relation(fields: [usuarioId], references: [id])
 }
 
-model Configuracion {
-  id                Int      @id @default(autoincrement())
-  nombre_empresa    String
-  direccion         String?
-  telefono          String?
-  email             String?
-  sitio_web         String?
-  moneda            String   @default("USD")
-  simbolo_moneda    String   @default("$")
-  formato_fecha     String   @default("YYYY-MM-DD")
-  formato_hora      String   @default("HH:mm:ss")
-  igv_general       Float    @default(0.0)
-  logo              String?
+model Empresa {
+  id                   Int       @id @default(autoincrement())
+  nombre_empresa       String
+  direccion            String?
+  telefono             String?
+  email                String?
+  moneda               String    @default("USD")
+  simbolo_moneda       String    @default("$")
+  formato_fecha        String    @default("YYYY-MM-DD")
+  formato_hora         String    @default("HH:mm:ss")
+  igv_general          Float     @default(0.0)
+  logo                 String?
   terminos_condiciones String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime?
 }

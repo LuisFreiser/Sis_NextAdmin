@@ -1,10 +1,10 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 
-// GET: Obtener todas las marcas
+// GET: OBTENER TODAS LAS MARCAS
 export async function GET() {
   try {
-    const marcas = await prisma.marcas.findMany();
+    const marcas = await prisma.marca.findMany();
     return NextResponse.json(marcas, { status: 200 });
   } catch (error) {
     if (error instanceof Error) {
@@ -16,7 +16,7 @@ export async function GET() {
   }
 }
 
-// POST: Crear una nueva marca
+// POST: CREAR UNA NUEVA MARCA
 export async function POST(req: NextRequest) {
   try {
     const { nombre, estado } = await req.json();
@@ -25,10 +25,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Nombre is required' }, { status: 400 });
     }
 
-    const newMarca = await prisma.marcas.create({
+    const newMarca = await prisma.marca.create({
       data: {
         nombre,
-        estado: estado || 'VIGENTE',
+        estado: estado || 'ACTIVO',
       },
     });
     return NextResponse.json(newMarca, { status: 201 });
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PUT: Actualizar una marca existente
+// PUT: ACTUALIZAR UNA MARCA EXISTENTE
 export async function PUT(req: NextRequest) {
   try {
     const { id, nombre, estado } = await req.json();
@@ -51,7 +51,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ message: 'ID y nombre son requeridos' }, { status: 400 });
     }
 
-    const existingMarca = await prisma.marcas.findUnique({
+    const existingMarca = await prisma.marca.findUnique({
       where: { id },
     });
 
@@ -59,7 +59,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ message: 'Marca no encontrada' }, { status: 404 });
     }
 
-    const updatedMarca = await prisma.marcas.update({
+    const updatedMarca = await prisma.marca.update({
       where: { id },
       data: {
         nombre,
@@ -78,7 +78,7 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// DELETE: Eliminar una marca existente
+// DELETE: ELIMINAR UNA MARCA
 export async function DELETE(req: NextRequest) {
   try {
     const url = new URL(req.url);
@@ -88,7 +88,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ message: 'ID de marca inválido' }, { status: 400 });
     }
 
-    const existingMarca = await prisma.marcas.findUnique({
+    const existingMarca = await prisma.marca.findUnique({
       where: { id },
     });
 
@@ -96,7 +96,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ message: 'Marca no encontrada' }, { status: 404 });
     }
 
-    await prisma.marcas.delete({
+    await prisma.marca.delete({
       where: { id },
     });
 

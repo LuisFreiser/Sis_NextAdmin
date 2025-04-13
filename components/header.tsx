@@ -1,9 +1,9 @@
 'use client';
 
 import Image from 'next/image';
-import { Bell, User, Search } from 'lucide-react';
+import { Bell, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+// import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,12 +26,14 @@ export function AppHeader() {
     >
       <div className="h-full flex items-center justify-between px-6">
         <div className="flex-1">
-          <Input
+          {/* <Input
             type="search"
             placeholder="Buscar..."
             className="w-[400px] bg-muted max-w-full"
             prefix={<Search className="h-4 w-4 text-muted-foreground" />}
-          />
+          /> */}
+          <label className="font-extrabold text-3xl block">FARMALAB SAC</label>
+          <label className="font-semibold">RUC:27283920192</label>
         </div>
 
         <div className="flex items-center gap-4">
@@ -52,7 +54,7 @@ export function AppHeader() {
                   priority
                   className="w-8 h-8 rounded-full"
                 />
-                <span>Jhon Smith</span>
+                <span>Administrador</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

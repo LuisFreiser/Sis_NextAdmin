@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import {
   Loader2,
   Home,
@@ -37,6 +38,11 @@ import {
   Search,
   Printer,
   SquarePen,
+  Check,
+  ChevronsUpDown,
+  Save,
+  Barcode,
+  FileSearch,
 } from 'lucide-react';
 import {
   Select,
@@ -53,62 +59,65 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 //DEFINIMOS EL TIPO DE DATOS DE LOS PRODUCTOS Y SUS RELACIONES
 type Producto = {
   id: number;
   codigo_prod: string;
   nombre: string;
-  precio_compra: number;
-  precio_venta: number;
-  stock: number;
-  stock_min: number | null;
-  categoriaId: number;
   marcaId: number;
-  presentacionId: number | null;
+  unidades_por_caja: number;
+  stock_cajas: number;
+  stock_unidades: number | null;
+  stock_min_cajas: number | null;
+  precio_compra: number;
+  precio_venta_caja: number;
+  precio_venta_unit: number;
   imagen: string | null;
   estado: string;
   marca: {
     id: number;
     nombre: string;
   };
-  categoria: {
-    id: number;
-    nombre: string;
-  };
-  presentacion: {
-    id: number;
-    nombre: string;
-  } | null;
 };
 
-//CUERPO DE LA PAGINA PRODUCTOS
+//FUNCIONES DE LA PAGINA PRODUCTOS
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  //CONSTANTE PARA EL NUMERO DE PAGINAS
+  //CONSTANTE PARA EL NUMERO DE PAGINACIÓN
   const itemsPerPage = 10;
 
   const [nuevoProducto, setNuevoProducto] = useState<Partial<Producto>>({
     codigo_prod: '',
     nombre: '',
-    precio_compra: 0,
-    precio_venta: 0,
-    stock: 0,
-    stock_min: 0,
-    categoriaId: 0,
     marcaId: 0,
-    presentacionId: null,
-    estado: 'VIGENTE',
+    unidades_por_caja: 0,
+    stock_cajas: 0,
+    stock_unidades: 0,
+    stock_min_cajas: 0,
+    precio_compra: 0,
+    precio_venta_caja: 0,
+    precio_venta_unit: 0,
+    estado: 'ACTIVO',
     imagen: '/no-image.jpg',
   });
+
+  //  ESTADOS PARA EDITAR UN PRODUCTO Y SU MARCA
   const [editProducto, setEditProducto] = useState<Partial<Producto> | null>(null);
-  const [categorias, setCategorias] = useState<Array<{ id: number; nombre: string }>>([]);
   const [marcas, setMarcas] = useState<Array<{ id: number; nombre: string }>>([]);
-  const [presentaciones, setPresentaciones] = useState<Array<{ id: number; nombre: string }>>([]);
 
   // ESTADOS PARA PREVISUALIZAR IMAGENES
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -122,10 +131,10 @@ export default function ProductosPage() {
         if (response.ok) {
           const data = await response.json();
           setProductos(data);
-          toast.success('Productos cargados exitosamente');
+          toast.success('Productos Cargados Exitosamente');
         } else {
           const error = await response.json();
-          toast.error(error.message || 'Error al obtener los productos');
+          toast.error(error.message || 'Error al Obtener los Productos');
         }
       } catch (error) {
         console.error('Error al conectar con el servidor:', error);
@@ -138,29 +147,18 @@ export default function ProductosPage() {
     fetchProductos();
   }, []);
 
-  // FUNCION PARA OBTENER MARCAS, CATEGORIAS Y PRESENTACIONES
+  // FUNCION PARA OBTENER MARCAS DE PRODUCTOS
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [categoriasRes, marcasRes, presentacionesRes] = await Promise.all([
-          fetch('/api/categorias'),
-          fetch('/api/marcas'),
-          fetch('/api/presentacion'),
-        ]);
+        const [marcasRes] = await Promise.all([fetch('/api/marcas')]);
 
-        if (!categoriasRes.ok || !marcasRes.ok || !presentacionesRes.ok) {
+        if (!marcasRes.ok) {
           throw new Error('Error al cargar los datos relacionados');
         }
+        const [marcasData] = await Promise.all([marcasRes.json()]);
 
-        const [categoriasData, marcasData, presentacionesData] = await Promise.all([
-          categoriasRes.json(),
-          marcasRes.json(),
-          presentacionesRes.json(),
-        ]);
-
-        setCategorias(categoriasData);
         setMarcas(marcasData);
-        setPresentaciones(presentacionesData);
       } catch (error) {
         console.error('Error:', error);
         toast.error('Error al cargar los datos necesarios');
@@ -172,21 +170,16 @@ export default function ProductosPage() {
 
   // FUNCION PARA CREAR UN NUEVO PRODUCTO
   const handleCrearProducto = async () => {
-    if (
-      !nuevoProducto.nombre ||
-      !nuevoProducto.codigo_prod ||
-      !nuevoProducto.categoriaId ||
-      !nuevoProducto.marcaId
-    ) {
-      toast.error('Nombre, código, categoría y marca son obligatorios');
+    if (!nuevoProducto.codigo_prod || !nuevoProducto.nombre || !nuevoProducto.marcaId) {
+      toast.error('Código, Nombre y Marca son Obligatorios');
       return;
     }
 
     if (
       !nuevoProducto.precio_compra ||
-      !nuevoProducto.precio_venta ||
+      !nuevoProducto.precio_venta_caja ||
       Number(nuevoProducto.precio_compra) <= 0 ||
-      Number(nuevoProducto.precio_venta) <= 0
+      Number(nuevoProducto.precio_venta_caja) <= 0
     ) {
       toast.error('Los precios deben ser mayores a 0');
       return;
@@ -208,20 +201,21 @@ export default function ProductosPage() {
             setNuevoProducto({
               codigo_prod: '',
               nombre: '',
-              precio_compra: 0,
-              precio_venta: 0,
-              stock: 0,
-              stock_min: 0,
-              categoriaId: 0,
               marcaId: 0,
-              presentacionId: null,
-              estado: 'VIGENTE',
+              unidades_por_caja: 0,
+              stock_cajas: 0,
+              stock_unidades: 0,
+              stock_min_cajas: 0,
+              precio_compra: 0,
+              precio_venta_caja: 0,
+              precio_venta_unit: 0,
+              estado: 'ACTIVO',
               imagen: '/no-image.jpg',
             });
             setPreviewImage(null);
             resolve('success');
           } else {
-            reject(data.message || 'Error al crear el producto');
+            reject(data.message || 'Error al Crear el Producto');
           }
         } catch (error) {
           console.error('Error de conexión con el servidor:', error);
@@ -229,8 +223,8 @@ export default function ProductosPage() {
         }
       }),
       {
-        loading: 'Creando producto...',
-        success: 'Producto creado exitosamente',
+        loading: 'Creando Producto...',
+        success: 'Producto Creado Exitosamente',
         error: (err) => `${err}`,
       }
     );
@@ -240,21 +234,16 @@ export default function ProductosPage() {
   const handleEditarProducto = async () => {
     if (!editProducto) return;
 
-    if (
-      !editProducto.nombre ||
-      !editProducto.codigo_prod ||
-      !editProducto.categoriaId ||
-      !editProducto.marcaId
-    ) {
-      toast.error('Nombre, código, categoría y marca son obligatorios');
+    if (!editProducto.codigo_prod || !editProducto.nombre || !editProducto.marcaId) {
+      toast.error('Código, Nombre, y Marca son Obligatorios');
       return;
     }
 
     if (
       !editProducto.precio_compra ||
-      !editProducto.precio_venta ||
+      !editProducto.precio_venta_caja ||
       Number(editProducto.precio_compra) <= 0 ||
-      Number(editProducto.precio_venta) <= 0
+      Number(editProducto.precio_venta_caja) <= 0
     ) {
       toast.error('Los precios deben ser mayores a 0');
       return;
@@ -277,7 +266,7 @@ export default function ProductosPage() {
             setEditPreviewImage(null);
             resolve('success');
           } else {
-            reject(data.message || 'Error al actualizar el producto');
+            reject(data.message || 'Error al Actualizar el Producto');
           }
         } catch (error) {
           console.error('Error de conexión con el servidor:', error);
@@ -285,8 +274,8 @@ export default function ProductosPage() {
         }
       }),
       {
-        loading: 'Actualizando producto...',
-        success: 'Producto actualizado exitosamente',
+        loading: 'Actualizando Producto...',
+        success: 'Producto Actualizado Exitosamente',
         error: (err) => `${err}`,
       }
     );
@@ -336,7 +325,7 @@ export default function ProductosPage() {
     }
   };
 
-  // FILTRAR LOS PRODUCTOS POR NOMBRE, CODIGO O MARCA
+  // FILTRAR LOS PRODUCTOS POR CODIGO, NOMBRE O MARCA
   const filteredProductos = productos.filter(
     (producto) =>
       producto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -352,24 +341,33 @@ export default function ProductosPage() {
     doc.setFontSize(20);
     doc.text('Reporte de Productos', 75, 22);
     doc.setFontSize(11);
-    doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 30);
+    doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 94, 30);
 
     // PREPARAR LOS DATOS DE LA TABLA
     const tableRows = productos.map((producto) => [
       producto.codigo_prod,
       producto.nombre,
       producto.marca.nombre,
-      producto.presentacion?.nombre || '-',
-      producto.stock,
+      producto.stock_cajas,
+      producto.stock_unidades,
       producto.precio_compra.toFixed(2),
-      producto.precio_venta.toFixed(2),
+      producto.precio_venta_caja.toFixed(2),
       producto.estado,
     ]);
 
     // GENERAR LA TABLA PARA EL PDF
     autoTable(doc, {
       head: [
-        ['Código', 'Producto', 'Marca', 'Presentación', 'Stock', 'P.Compra', 'P.Venta', 'Estado'],
+        [
+          'Código',
+          'Producto',
+          'Marca',
+          'Stock Cajas',
+          'Stock Unid.',
+          'P.Costo',
+          'P.Venta',
+          'Estado',
+        ],
       ],
       body: tableRows,
       startY: 35,
@@ -388,15 +386,22 @@ export default function ProductosPage() {
 
     // GUADAR EL PDF
     doc.save('reporte-productos.pdf');
-    toast.success('Reporte generado exitosamente');
+    toast.success('Reporte Generado Exitosamente');
   };
 
   //LOADER DE LA PAGINA PRODUCTOS
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 flex justify-center items-center h-full">
-        <Loader2 className="mr-2 h-12 w-12 animate-spin" />
-        <p>Cargando Productos...</p>
+      <div className="container mt-4 p-4 rounded-lg shadow-lg">
+        <div className="flex justify-center items-center min-h-[600px]">
+          <div className="bg-card p-6 rounded-lg shadow-lg flex flex-col items-center gap-4 animate-pulse">
+            <div className="relative">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              <div className="absolute inset-0 border-t-4 border-primary rounded-full animate-ping" />
+            </div>
+            <p className="text-muted-foreground">Cargando inventario...</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -410,7 +415,7 @@ export default function ProductosPage() {
 
   //FRONT-END DE LA PAGINA PRODUCTOS
   return (
-    <div className="container mx-auto p-4 rounded-lg shadow-lg bg-white dark:bg-slate-900 dark:shadow-slate-700">
+    <div className="container max-w-[83rem] mt-4 p-4 rounded-lg shadow-lg border bg-white dark:bg-slate-900 dark:shadow-slate-700">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-semibold">Productos</h1>
@@ -423,12 +428,12 @@ export default function ProductosPage() {
             <span>Productos</span>
           </div>
         </div>
-        {/*BOTONES DE AGREGAR E IMPRIMIR */}
+        {/* DIALOGO PARA CREAR UNA NUEVA CATEGORIA */}
         <div className="flex gap-2">
           <Dialog>
             <DialogTrigger asChild>
               <Button
-                className="mb-4"
+                className="mb-4 font-semibold"
                 onClick={() => {
                   // Establecer la imagen por defecto al abrir el modal
                   setPreviewImage('/no-image.png');
@@ -436,15 +441,16 @@ export default function ProductosPage() {
                   setNuevoProducto({
                     codigo_prod: '',
                     nombre: '',
-                    precio_compra: 0,
-                    precio_venta: 0,
-                    stock: 0,
-                    stock_min: 0,
-                    categoriaId: 0,
                     marcaId: 0,
-                    presentacionId: null,
-                    estado: 'VIGENTE',
-                    imagen: '/no-image.png',
+                    unidades_por_caja: 0,
+                    stock_cajas: 0,
+                    stock_unidades: 0,
+                    stock_min_cajas: 0,
+                    precio_compra: 0,
+                    precio_venta_caja: 0,
+                    precio_venta_unit: 0,
+                    estado: 'ACTIVO',
+                    imagen: '/no-image.jpg',
                   });
                 }}
               >
@@ -455,14 +461,16 @@ export default function ProductosPage() {
               <DialogHeader>
                 <DialogTitle>
                   <SquarePen className="inline mr-2" />
-                  Nuevo Producto
+                  Registrar Producto
                 </DialogTitle>
               </DialogHeader>
               <div className="grid grid-cols-2 gap-4">
-                <label className="text-sm font-medium text-gray-700">
+                <label className="text-sm font-medium">
+                  <Barcode size={16} className="inline mr-1" />
                   Cod.Interno
                   <Input
                     placeholder="CL363793"
+                    className="focus-visible:ring-offset-0"
                     value={nuevoProducto.codigo_prod || ''}
                     onChange={(e) =>
                       setNuevoProducto({
@@ -472,10 +480,11 @@ export default function ProductosPage() {
                     }
                   />
                 </label>
-                <label className="text-sm font-medium text-gray-700">
-                  Nombre
+                <label className="text-sm font-medium">
+                  Descripción
                   <Input
                     placeholder="Nombre del Producto"
+                    className="focus-visible:ring-offset-0"
                     value={nuevoProducto.nombre || ''}
                     onChange={(e) =>
                       setNuevoProducto({
@@ -485,120 +494,117 @@ export default function ProductosPage() {
                     }
                   />
                 </label>
-                <label className="text-sm font-medium text-gray-700">
-                  Categoria
-                  <Select
-                    onValueChange={(value) =>
-                      setNuevoProducto({
-                        ...nuevoProducto,
-                        categoriaId: value === '0' ? 0 : Number(value),
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar Categoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {/* Cambiamos el valor vacío por "0" */}
-                      {/* <SelectItem value="0"></SelectItem> */}
-                      {categorias.map((categoria) => (
-                        <SelectItem key={categoria.id} value={categoria.id.toString()}>
-                          {categoria.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </label>
 
-                <label className="text-sm font-medium text-gray-700">
+                {/*COMBOBOX SEARCH DE MARCAS */}
+                <label className="text-sm font-medium">
                   Marca
-                  <Select
-                    onValueChange={(value) =>
-                      setNuevoProducto({
-                        ...nuevoProducto,
-                        marcaId: Number(value),
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar Marca" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {/* Cambiamos el valor vacío por "0" */}
-                      <SelectItem value="0">Seleccione una marca</SelectItem>
-                      {marcas.map((marca) => (
-                        <SelectItem key={marca.id} value={marca.id.toString()}>
-                          {marca.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" className="w-full justify-between">
+                        {nuevoProducto.marcaId ? (
+                          marcas.find((marca) => marca.id === nuevoProducto.marcaId)?.nombre
+                        ) : (
+                          <span className="text-gray-600">Seleccionar Marca</span>
+                        )}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Buscar marca..." />
+                        <CommandList>
+                          <CommandEmpty>No se encontraron marcas.</CommandEmpty>
+                          <CommandGroup>
+                            {marcas.map((marca) => (
+                              <CommandItem
+                                key={marca.id}
+                                value={marca.nombre}
+                                onSelect={() => {
+                                  setNuevoProducto({
+                                    ...nuevoProducto,
+                                    marcaId: marca.id,
+                                  });
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    'mr-2 h-4 w-4',
+                                    nuevoProducto.marcaId === marca.id ? 'opacity-100' : 'opacity-0'
+                                  )}
+                                />
+                                {marca.nombre}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </label>
 
-                <label className="text-sm font-medium text-gray-700">
-                  Presentación
-                  <Select
-                    onValueChange={(value) =>
+                {/*INPUT DE UNID X CAJA DE PRODUCTO*/}
+                <label className="text-sm font-medium">
+                  Unid x Caja
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    className="focus-visible:ring-offset-0"
+                    value={nuevoProducto.unidades_por_caja || ''}
+                    onChange={(e) =>
                       setNuevoProducto({
                         ...nuevoProducto,
-                        presentacionId: value === 'null' ? null : Number(value),
+                        unidades_por_caja: Math.max(0, Number(e.target.value)),
                       })
                     }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar Presentación" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {/* Cambiamos el valor vacío por "null" */}
-                      <SelectItem value="null">Sin presentación</SelectItem>
-                      {presentaciones.map((presentacion) => (
-                        <SelectItem key={presentacion.id} value={presentacion.id.toString()}>
-                          {presentacion.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  />
                 </label>
 
-                <label className="text-sm font-medium text-gray-700">
+                {/*INPUT DE STOCK_CAJAS DE PRODUCTO*/}
+                <label className="text-sm font-medium">
                   Stock
                   <Input
                     type="number"
                     min="0"
                     placeholder="0"
-                    value={nuevoProducto.stock || ''}
+                    className="focus-visible:ring-offset-0"
+                    value={nuevoProducto.stock_cajas || ''}
                     onChange={(e) =>
                       setNuevoProducto({
                         ...nuevoProducto,
-                        stock: Math.max(0, Number(e.target.value)),
+                        stock_cajas: Math.max(0, Number(e.target.value)),
                       })
                     }
                   />
                 </label>
 
-                <label className="text-sm font-medium text-gray-700">
+                {/*INPUT DE STOCK MIN DE PRODUCTO*/}
+                <label className="text-sm font-medium">
                   Stock Min
                   <Input
                     type="number"
                     min="0"
                     placeholder="0"
-                    value={nuevoProducto.stock_min || ''}
+                    className="focus-visible:ring-offset-0"
+                    value={nuevoProducto.stock_min_cajas || ''}
                     onChange={(e) =>
                       setNuevoProducto({
                         ...nuevoProducto,
-                        stock_min: Number(e.target.value),
+                        stock_min_cajas: Number(e.target.value),
                       })
                     }
                   />
                 </label>
 
-                <label className="text-sm font-medium text-gray-700">
+                {/*INPUT DE PRECIO COMPRA DE PRODUCTO*/}
+                <label className="text-sm font-medium">
                   Precio Compra
                   <Input
                     type="number"
                     min="0"
                     step="0.01"
                     placeholder="0.00"
+                    className="focus-visible:ring-offset-0"
                     value={nuevoProducto.precio_compra || ''}
                     onChange={(e) =>
                       setNuevoProducto({
@@ -608,23 +614,47 @@ export default function ProductosPage() {
                     }
                   />
                 </label>
-                <label className="text-sm font-medium text-gray-700">
-                  Precio Venta
+
+                {/*INPUT DE PRECIO VENTA X CAJA*/}
+                <label className="text-sm font-medium">
+                  P. Venta x Caja
                   <Input
                     type="number"
                     min="0"
                     step="0.01"
                     placeholder="0.00"
-                    value={nuevoProducto.precio_venta || ''}
+                    className="focus-visible:ring-offset-0"
+                    value={nuevoProducto.precio_venta_caja || ''}
                     onChange={(e) =>
                       setNuevoProducto({
                         ...nuevoProducto,
-                        precio_venta: Math.max(0, Number(e.target.value)),
+                        precio_venta_caja: Math.max(0, Number(e.target.value)),
                       })
                     }
                   />
                 </label>
-                <label className="text-sm font-medium text-gray-700">
+
+                {/*INPUT DE PRECIO VENTA X UNIDAD*/}
+                <label className="text-sm font-medium">
+                  P. Venta x Unid
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    className="focus-visible:ring-offset-0"
+                    value={nuevoProducto.precio_venta_unit || ''}
+                    onChange={(e) =>
+                      setNuevoProducto({
+                        ...nuevoProducto,
+                        precio_venta_unit: Math.max(0, Number(e.target.value)),
+                      })
+                    }
+                  />
+                </label>
+
+                {/*SELECT DE ESTADO DE PRODUCTO*/}
+                <label className="text-sm font-medium">
                   Estado
                   <Select
                     onValueChange={(value) =>
@@ -635,21 +665,21 @@ export default function ProductosPage() {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Estado" defaultValue="VIGENTE" />
+                      <SelectValue placeholder="ACTIVO" defaultValue="ACTIVO" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="VIGENTE">VIGENTE</SelectItem>
-                      <SelectItem value="DESCONTINUADO">DESCONTINUADO</SelectItem>
+                      <SelectItem value="ACTIVO">ACTIVO</SelectItem>
+                      <SelectItem value="INACTIVO">INACTIVO</SelectItem>
                     </SelectContent>
                   </Select>
                 </label>
 
-                {/*AGREGAMOS EL CAMPO DE IMAGEN Y SU VISTA PREVIA*/}
-                <label className="text-sm font-medium text-gray-700">
+                {/*CAMPO DE IMAGEN Y VISTA PREVIA*/}
+                <label className="text-sm font-medium">
                   Imagen
                   <Input
                     type="file"
-                    className="file:mr-4 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                    className="file:mr-4 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-800 file:text-primary-foreground hover:file:bg-opacity-95 file:cursor-pointer"
                     accept="image/*"
                     onChange={(e) => handleImageChange(e)}
                   />
@@ -667,21 +697,24 @@ export default function ProductosPage() {
                 )}
 
                 <DialogClose asChild>
-                  <Button onClick={handleCrearProducto}>Crear Producto</Button>
+                  <Button className="font-semibold" onClick={handleCrearProducto}>
+                    <Save />
+                    REGISTRAR
+                  </Button>
                 </DialogClose>
               </div>
             </DialogContent>
           </Dialog>
 
           {/*BOTON DE IMPRIMIR REPORTES*/}
-          <Button className="mb-4" onClick={handleImprimirReporte}>
+          <Button className="mb-4 font-semibold" onClick={handleImprimirReporte}>
             <Printer />
             Imprimir Reporte
           </Button>
         </div>
       </div>
 
-      {/*BUSCADOR DE PRODUCTOS*/}
+      {/*BOTON PARA BUSCAR PRODUCTOS*/}
       <div className="flex-1 mb-4">
         <Input
           type="search"
@@ -696,59 +729,69 @@ export default function ProductosPage() {
         />
       </div>
 
-      {/*TABLA DE PAGINA PRODUCTOS*/}
+      {/*TABLA DE PAGINA INVENTARIO DE PRODUCTOS*/}
       <div className="hidden border md:block">
         <Table>
           <TableHeader>
-            <TableRow className="h-8 bg-slate-100">
+            <TableRow className="h-8 text-sm bg-slate-100">
               <TableHead className="py-1">Cod.Barra</TableHead>
               <TableHead className="py-1">Producto</TableHead>
               <TableHead className="py-1">Marca</TableHead>
-              <TableHead className="py-1">Presentación</TableHead>
               <TableHead className="py-1">Stock</TableHead>
-              <TableHead className="py-1">P.Compra</TableHead>
-              <TableHead className="py-1">P.Venta</TableHead>
+              <TableHead className="py-1">Costo</TableHead>
+              <TableHead className="py-1">Prec.Caja</TableHead>
+              <TableHead className="py-1">Prec.Unid</TableHead>
               <TableHead className="py-1">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedProductos.map((producto) => (
-              <TableRow key={producto.id} className="h-8">
-                <TableCell className="py-1">{producto.codigo_prod}</TableCell>
-                <TableCell className="py-1">{producto.nombre}</TableCell>
-                <TableCell className="py-1">{producto.marca.nombre}</TableCell>
-                <TableCell className="py-1">{producto.presentacion?.nombre || '-'}</TableCell>
-                <TableCell className="py-1">
+              <TableRow
+                key={producto.id}
+                className="hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
+              >
+                <TableCell>{producto.codigo_prod}</TableCell>
+                <TableCell>{producto.nombre}</TableCell>
+                <TableCell>{producto.marca.nombre}</TableCell>
+                <TableCell>
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      producto.stock === 0
+                      producto.stock_cajas === 0
                         ? 'bg-red-600 text-gray-50'
-                        : producto.stock_min !== null && producto.stock <= producto.stock_min
+                        : producto.stock_min_cajas !== null &&
+                          producto.stock_cajas <= producto.stock_min_cajas
                         ? 'bg-orange-400 text-gray-50'
-                        : 'text-gray-900'
+                        : ''
                     }`}
                   >
-                    {producto.stock === 0
+                    {producto.stock_cajas === 0
                       ? 'AGOTADO'
-                      : producto.stock_min !== null && producto.stock <= producto.stock_min
+                      : producto.stock_min_cajas !== null &&
+                        producto.stock_cajas <= producto.stock_min_cajas
                       ? 'EN MINIMO'
-                      : producto.stock}
+                      : producto.stock_cajas}
                   </span>
                 </TableCell>
-                <TableCell className="py-1">
+                <TableCell className="py-1 text-xs">
                   {new Intl.NumberFormat('es-PE', {
                     style: 'currency',
                     currency: 'PEN',
                   }).format(producto.precio_compra)}
                 </TableCell>
-                <TableCell className="py-1">
+                <TableCell className="py-1 text-xs">
                   {new Intl.NumberFormat('es-PE', {
                     style: 'currency',
                     currency: 'PEN',
-                  }).format(producto.precio_venta)}
+                  }).format(producto.precio_venta_caja)}
+                </TableCell>
+                <TableCell className="py-1 text-xs">
+                  {new Intl.NumberFormat('es-PE', {
+                    style: 'currency',
+                    currency: 'PEN',
+                  }).format(producto.precio_venta_unit)}
                 </TableCell>
                 <TableCell className="py-1">
-                  {/*BOTONES DE EDITAR Y VISTA*/}
+                  {/*BOTON DE EDITAR PRODUCTO*/}
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button
@@ -772,10 +815,13 @@ export default function ProductosPage() {
                       </DialogHeader>
                       {editProducto && (
                         <div className="grid grid-cols-2 gap-4">
-                          <label className="text-sm font-medium text-gray-700">
+                          {/*INPUT CODIGO DE PRODUCTO*/}
+                          <label className="text-sm font-medium">
+                            <Barcode size={16} className="inline mr-1" />
                             Cod.Interno
                             <Input
                               placeholder="Código de Barra"
+                              className="focus-visible:ring-offset-0"
                               value={editProducto.codigo_prod || ''}
                               onChange={(e) =>
                                 setEditProducto({
@@ -785,10 +831,12 @@ export default function ProductosPage() {
                               }
                             />
                           </label>
-                          <label className="text-sm font-medium text-gray-700">
-                            Nombre
+                          {/*INPUT DESCRIPCION DE PRODUCTO*/}
+                          <label className="text-sm font-medium">
+                            Descripción
                             <Input
                               placeholder="Nombre del Producto"
+                              className="focus-visible:ring-offset-0"
                               value={editProducto.nombre || ''}
                               onChange={(e) =>
                                 setEditProducto({
@@ -798,111 +846,114 @@ export default function ProductosPage() {
                               }
                             />
                           </label>
-                          <label className="text-sm font-medium text-gray-700">
-                            Categoria
-                            <Select
-                              defaultValue={editProducto.categoriaId?.toString()}
-                              onValueChange={(value) =>
-                                setEditProducto({
-                                  ...editProducto,
-                                  categoriaId: Number(value),
-                                })
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Categoría" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {categorias.map((categoria) => (
-                                  <SelectItem key={categoria.id} value={categoria.id.toString()}>
-                                    {categoria.nombre}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </label>
-                          <label className="text-sm font-medium text-gray-700">
+
+                          {/*COMBOBOX SEARCH DE MARCAS */}
+                          <label className="text-sm font-medium">
                             Marca
-                            <Select
-                              defaultValue={editProducto.marcaId?.toString()}
-                              onValueChange={(value) =>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  className="w-full justify-between"
+                                >
+                                  {editProducto.marcaId ? (
+                                    marcas.find((marca) => marca.id === editProducto.marcaId)
+                                      ?.nombre
+                                  ) : (
+                                    <span className="text-gray-600">Seleccionar Marca</span>
+                                  )}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[300px] p-0">
+                                <Command>
+                                  <CommandInput placeholder="Buscar Marca..." />
+                                  <CommandList>
+                                    <CommandEmpty>No se Encontraron Marcas.</CommandEmpty>
+                                    <CommandGroup>
+                                      {marcas.map((marca) => (
+                                        <CommandItem
+                                          key={marca.id}
+                                          value={marca.nombre}
+                                          onSelect={() => {
+                                            setEditProducto({
+                                              ...editProducto,
+                                              marcaId: marca.id,
+                                            });
+                                          }}
+                                        >
+                                          <Check
+                                            className={cn(
+                                              'mr-2 h-4 w-4',
+                                              editProducto.marcaId === marca.id
+                                                ? 'opacity-100'
+                                                : 'opacity-0'
+                                            )}
+                                          />
+                                          {marca.nombre}
+                                        </CommandItem>
+                                      ))}
+                                    </CommandGroup>
+                                  </CommandList>
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
+                          </label>
+
+                          {/*INPUT DE UNID X CAJA DE PRODUCTO*/}
+                          <label className="text-sm font-medium">
+                            Unid x Caja
+                            <Input
+                              type="number"
+                              min="0"
+                              placeholder="Stock"
+                              value={editProducto.unidades_por_caja || ''}
+                              onChange={(e) =>
                                 setEditProducto({
                                   ...editProducto,
-                                  marcaId: Number(value),
+                                  unidades_por_caja: Math.max(0, Number(e.target.value)),
                                 })
                               }
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Marca" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {marcas.map((marca) => (
-                                  <SelectItem key={marca.id} value={marca.id.toString()}>
-                                    {marca.nombre}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            />
                           </label>
-                          <label className="text-sm font-medium text-gray-700">
-                            Presentación
-                            <Select
-                              defaultValue={editProducto.presentacionId?.toString() || 'null'}
-                              onValueChange={(value) =>
-                                setEditProducto({
-                                  ...editProducto,
-                                  presentacionId: value === 'null' ? null : Number(value),
-                                })
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Presentación" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {/* Cambiamos el valor vacío por "null" */}
-                                <SelectItem value="null">Sin presentación</SelectItem>
-                                {presentaciones.map((presentacion) => (
-                                  <SelectItem
-                                    key={presentacion.id}
-                                    value={presentacion.id.toString()}
-                                  >
-                                    {presentacion.nombre}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </label>
-                          <label className="text-sm font-medium text-gray-700">
+
+                          {/*INPUT DE STOCK X CAJA DE PRODUCTO*/}
+                          <label className="text-sm font-medium">
                             Stock
                             <Input
                               type="number"
                               min="0"
                               placeholder="Stock"
-                              value={editProducto.stock || ''}
+                              value={editProducto.stock_cajas || ''}
                               onChange={(e) =>
                                 setEditProducto({
                                   ...editProducto,
-                                  stock: Math.max(0, Number(e.target.value)),
+                                  stock_cajas: Math.max(0, Number(e.target.value)),
                                 })
                               }
                             />
                           </label>
-                          <label className="text-sm font-medium text-gray-700">
+
+                          {/*INPUT DE STOCK MIN DE PRODUCTO*/}
+                          <label className="text-sm font-medium">
                             Stock Min
                             <Input
                               type="number"
                               min="0"
                               placeholder="Stock Mínimo"
-                              value={editProducto.stock_min || ''}
+                              value={editProducto.stock_min_cajas || ''}
                               onChange={(e) =>
                                 setEditProducto({
                                   ...editProducto,
-                                  stock_min: Number(e.target.value),
+                                  stock_min_cajas: Number(e.target.value),
                                 })
                               }
                             />
                           </label>
-                          <label className="text-sm font-medium text-gray-700">
+
+                          {/*INPUT DE PRECIO COMPRA DE PRODUCTO*/}
+                          <label className="text-sm font-medium">
                             Precio Compra
                             <Input
                               type="number"
@@ -918,23 +969,45 @@ export default function ProductosPage() {
                               }
                             />
                           </label>
-                          <label className="text-sm font-medium text-gray-700">
-                            Precio Venta
+
+                          {/*INPUT DE PRECIO VENTA X CAJA DE PRODUCTO*/}
+                          <label className="text-sm font-medium">
+                            P. Venta x Caja
                             <Input
                               type="number"
                               min="0"
                               step="0.01"
                               placeholder="Precio de Venta"
-                              value={editProducto.precio_venta || ''}
+                              value={editProducto.precio_venta_caja || ''}
                               onChange={(e) =>
                                 setEditProducto({
                                   ...editProducto,
-                                  precio_venta: Math.max(0, Number(e.target.value)),
+                                  precio_venta_caja: Math.max(0, Number(e.target.value)),
                                 })
                               }
                             />
                           </label>
-                          <label className="text-sm font-medium text-gray-700">
+
+                          {/*INPUT DE PRECIO VENTA X UNID DE PRODUCTO*/}
+                          <label className="text-sm font-medium">
+                            P. Venta x Unid
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="Precio de Venta"
+                              value={editProducto.precio_venta_unit || ''}
+                              onChange={(e) =>
+                                setEditProducto({
+                                  ...editProducto,
+                                  precio_venta_unit: Math.max(0, Number(e.target.value)),
+                                })
+                              }
+                            />
+                          </label>
+
+                          {/*SELECT DE ESTADO DE PRODUCTO*/}
+                          <label className="text-sm font-medium">
                             Estado
                             <Select
                               defaultValue={editProducto.estado}
@@ -949,8 +1022,8 @@ export default function ProductosPage() {
                                 <SelectValue placeholder="Estado" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="VIGENTE">VIGENTE</SelectItem>
-                                <SelectItem value="DESCONTINUADO">DESCONTINUADO</SelectItem>
+                                <SelectItem value="ACTIVO">ACTIVO</SelectItem>
+                                <SelectItem value="INACTIVO">INACTIVO</SelectItem>
                               </SelectContent>
                             </Select>
                           </label>
@@ -958,11 +1031,11 @@ export default function ProductosPage() {
                           {/*AGREGAMOS EL CAMPO DE IMAGEN Y SU VISTA PREVIA*/}
                           <div className="col-span-2 grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-2">
-                              <label className="text-sm font-medium text-gray-700">
+                              <label className="text-sm font-medium">
                                 Imagen
                                 <Input
                                   type="file"
-                                  className="file:mr-4 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                                  className="file:mr-4 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-800 file:text-primary-foreground hover:file:bg-opacity-95 file:cursor-pointer"
                                   accept="image/*"
                                   onChange={(e) => handleImageChange(e, true)}
                                 />
@@ -982,10 +1055,114 @@ export default function ProductosPage() {
                           </div>
 
                           <DialogClose asChild>
-                            <Button onClick={handleEditarProducto}>Guardar Cambios</Button>
+                            <Button className="font-semibold" onClick={handleEditarProducto}>
+                              <Save />
+                              GUARDAR CAMBIOS
+                            </Button>
                           </DialogClose>
                         </div>
                       )}
+                    </DialogContent>
+                  </Dialog>
+                  {/*BOTON DE VISTA PRODUCTOS*/}
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="ml-2" title="Ver Detalles">
+                        <FileSearch />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>
+                          <FileSearch className="inline mr-2" />
+                          Detalle del Producto
+                        </DialogTitle>
+                      </DialogHeader>
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* IMAGEN DEL PRODUCTO */}
+                        <div className="col-span-2 flex justify-center">
+                          <Image
+                            src={producto.imagen || noImage}
+                            alt={producto.nombre}
+                            width={200}
+                            height={200}
+                            className="rounded-lg border p-2"
+                          />
+                        </div>
+
+                        {/* INFORMACIÓN DEL PRODUCTO */}
+                        <div className="col-span-2 gap-28 flex justify-center">
+                          <div className="space-y-2">
+                            <p className="text-sm">
+                              <span className="font-medium">Código: </span>
+                              {producto.codigo_prod}
+                            </p>
+                            <p className="text-sm">
+                              <span className="font-medium">Nombre: </span>
+                              {producto.nombre}
+                            </p>
+                            <p className="text-sm">
+                              <span className="font-medium">Marca: </span>
+                              {producto.marca.nombre}
+                            </p>
+                            <p className="text-sm">
+                              <span className="font-semibold">Stock Cajas: </span>
+                              <span
+                                className={cn(
+                                  'px-2 py-1 rounded-full text-sm font-semibold',
+                                  producto.stock_cajas === 0
+                                    ? 'bg-red-600 text-white'
+                                    : 'bg-green-600 text-white'
+                                )}
+                              >
+                                {producto.stock_cajas === 0 ? 'AGOTADO' : producto.stock_cajas}
+                              </span>
+                            </p>
+                            <p className="text-sm">
+                              <span className="font-semibold">Stock Unid: </span>
+                              {producto.stock_unidades}
+                            </p>
+                          </div>
+
+                          {/* Información de stock y precios */}
+                          <div className="space-y-2">
+                            <p className="text-sm">
+                              <span className="font-medium">Precio Compra: </span>
+                              {new Intl.NumberFormat('es-PE', {
+                                style: 'currency',
+                                currency: 'PEN',
+                              }).format(producto.precio_compra)}
+                            </p>
+                            <p className="text-sm">
+                              <span className="font-semibold">P.Venta x Caja: </span>
+                              {new Intl.NumberFormat('es-PE', {
+                                style: 'currency',
+                                currency: 'PEN',
+                              }).format(producto.precio_venta_caja)}
+                            </p>
+                            <p className="text-sm">
+                              <span className="font-semibold">P.Venta x Unid: </span>
+                              {new Intl.NumberFormat('es-PE', {
+                                style: 'currency',
+                                currency: 'PEN',
+                              }).format(producto.precio_venta_unit)}
+                            </p>
+                            <p className="text-sm">
+                              <span className="font-medium">Estado: </span>
+                              <span
+                                className={cn(
+                                  'px-2 py-1 rounded-full text-xs font-medium',
+                                  producto.estado === 'ACTIVO'
+                                    ? 'bg-green-600 text-gray-100'
+                                    : 'bg-gray-600 text-gray-100'
+                                )}
+                              >
+                                {producto.estado}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </DialogContent>
                   </Dialog>
                 </TableCell>
@@ -993,14 +1170,17 @@ export default function ProductosPage() {
             ))}
           </TableBody>
         </Table>
-        {/*NUMERAL DE PAGINACION*/}
+
+        {/*NUMERAL DE PAGINACION PRODUCTOS*/}
         <div className="flex justify-center mt-4">
           <Pagination>
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious
                   aria-disabled={currentPage === 1}
-                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                  className={
+                    currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                  }
                   onClick={(e) => {
                     e.preventDefault();
                     if (currentPage > 1) {
@@ -1028,7 +1208,9 @@ export default function ProductosPage() {
               <PaginationItem>
                 <PaginationNext
                   aria-disabled={currentPage === totalPages}
-                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+                  className={
+                    currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                  }
                   onClick={(e) => {
                     e.preventDefault();
                     if (currentPage < totalPages) {

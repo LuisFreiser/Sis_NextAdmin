@@ -2,14 +2,12 @@ import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { saveImageFromBase64 } from '@/lib/imageUtils';
 
-// GET: OBTENER TODOS LOS PRODUCTOS CON SU MARCA, CATEGORIA Y PRESENTACION
+// GET: OBTENER TODOS LOS PRODUCTOS CON SU MARCA
 export async function GET() {
   try {
     const productos = await prisma.productos.findMany({
       include: {
         marca: true,
-        presentacion: true,
-        categoria: true,
       },
     });
     return NextResponse.json(productos, { status: 200 });
@@ -27,46 +25,35 @@ export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
 
-    if (!data.nombre || !data.codigo_prod) {
+    if (!data.nombre || !data.codigo_prod || !data.marcaId) {
       return NextResponse.json(
-        { message: 'Nombre y código de producto son requeridos' },
+        { message: 'Nombre, código de producto y marca son requeridos' },
         { status: 400 }
       );
     }
 
-    // Si no hay imagen, usar la imagen por defecto
-    let imagePath = '/no-image.png';
+    // Validar que la marca existe
+    const marcaExiste = await prisma.marca.findUnique({
+      where: { id: data.marcaId },
+    });
 
-    // Crear primero el producto para obtener el ID
+    if (!marcaExiste) {
+      return NextResponse.json(
+        { message: 'La marca especificada no existe' },
+        { status: 400 }
+      );
+    }
+
     const newProducto = await prisma.productos.create({
       data: {
         ...data,
-        imagen: imagePath, // Inicialmente con imagen por defecto
+        estado: data.estado || 'ACTIVO',
+        imagen: data.imagen || '/no-image.png',
       },
       include: {
         marca: true,
-        presentacion: true,
-        categoria: true,
       },
     });
-
-    // Si hay una imagen en base64, guardarla y actualizar el producto
-    if (data.imagen && data.imagen.startsWith('data:image')) {
-      imagePath = await saveImageFromBase64(data.imagen, newProducto.id);
-
-      // Actualizar el producto con la ruta de la imagen
-      const updatedProducto = await prisma.productos.update({
-        where: { id: newProducto.id },
-        data: { imagen: imagePath },
-        include: {
-          marca: true,
-          presentacion: true,
-          categoria: true,
-        },
-      });
-
-      return NextResponse.json(updatedProducto, { status: 201 });
-    }
 
     return NextResponse.json(newProducto, { status: 201 });
   } catch (error) {
@@ -104,8 +91,6 @@ export async function PUT(request: Request) {
       },
       include: {
         marca: true,
-        presentacion: true,
-        categoria: true,
       },
     });
 

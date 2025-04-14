@@ -131,10 +131,10 @@ model Compras {
   estado              String   @default("PENDIENTE")
   usuarioId           Int
 
-  proveedor        Proveedores      @relation(fields: [proveedorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  usuario          Usuarios         @relation(fields: [usuarioId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  detalleCompras   DetalleCompras[]
-  tipo_comprobante TipoComprobante? @relation(fields: [tipo_comprobante_id], references: [id])
+  proveedor       Proveedores      @relation(fields: [proveedorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  usuario         Usuarios         @relation(fields: [usuarioId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  detalleCompras  DetalleCompras[]
+  tipoComprobante TipoComprobante? @relation(fields: [tipo_comprobante_id], references: [id])
 }
 
 model DetalleCompras {
@@ -160,12 +160,34 @@ model LoteProducto {
 }
 
 model TipoComprobante {
-  id          Int       @id @default(autoincrement())
-  codigo      String    @unique
-  comprobante String
-  estado      String    @default("ACTIVO")
-  ventas      Ventas[]
-  compras     Compras[]
+  id     Int     @id @default(autoincrement()) // Clave primaria autoincremental (SQLite usa Int)
+  codigo String  @unique // Código SUNAT (ej: '01', '03'), debe ser único.
+  nombre String // Nombre descriptivo (ej: 'Factura Electrónica', 'Boleta de Venta Electrónica')
+  estado String?
+
+  // Relación: Un tipo de comprobante puede tener muchas series asociadas.
+  series  SeriesComprobante[]
+  Ventas  Ventas[]
+  Compras Compras[]
+}
+
+model SeriesComprobante {
+  id                  Int     @id @default(autoincrement())
+  // Campo que almacena el ID del TipoComprobante al que pertenece esta serie (clave foránea)
+  tipo_comprobante_id Int
+  serie               String // Código de la serie (ej: 'F001', 'B001')
+  correlativo_actual  Int     @default(0) // Último número usado o siguiente a usar. Iniciamos en 0.
+  estado              String? // Estado de la serie (ej: 'Activa', 'Inactiva'). Opcional (?)
+
+  // --- Relación con TipoComprobante ---
+  tipoComprobante TipoComprobante @relation(fields: [tipo_comprobante_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  // onDelete: Restrict -> No permite borrar un TipoComprobante si tiene series asociadas.
+  // onUpdate: Cascade -> Si cambia el ID del TipoComprobante (poco común), se actualiza aquí.
+
+  // --- Restricciones ---
+  // Asegura que la combinación de tipo de comprobante y serie sea única.
+  // No puedes tener dos veces la serie 'F001' para el mismo 'TipoComprobante'.
+  @@unique([tipo_comprobante_id, serie])
 }
 
 model AperturaCierreCaja {

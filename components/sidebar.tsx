@@ -21,7 +21,7 @@ import {
   Info, // Añadir para Acerca de
   Receipt,
   ChevronLeft,
-  ChevronUp,
+  ChevronDown,
   Menu,
 } from 'lucide-react';
 
@@ -42,7 +42,7 @@ const ventasMenuItems = [
   { icon: FileSearch, label: 'Consultar Ventas', path: '/profile' },
 ];
 
-const usuariosMenuItems = [{ icon: Users, label: 'Registrar usuarios', path: '/compras' }];
+const usuariosMenuItems = [{ icon: Users, label: 'Registrar usuarios', path: '/registroUsuario' }];
 
 const reportesMenuItems = [
   { icon: Users, label: 'Ventas Diarias', path: '' },
@@ -52,8 +52,8 @@ const reportesMenuItems = [
 
 const documentosMenuItems = [
   { icon: Users, label: 'Tipo Documento', path: '/tipoDocumento' },
-  { icon: Receipt, label: 'Tipo Comprobante', path: '' },
-  { icon: FileSearch, label: 'Serie Comprobante', path: '' },
+  { icon: Receipt, label: 'Tipo Comprobante', path: '/tipoComprobante' },
+  { icon: FileSearch, label: 'Serie Comprobante', path: '/serieComprobante' },
 ];
 
 const supportMenuItems = [
@@ -90,7 +90,7 @@ function SidebarContent() {
           </Button>
         </div>
 
-        <nav className="space-y-4">
+        <nav className="space-y-4 space-x-2">
           {/* MENU PRINCIPAL */}
           <div>
             {isOpen && (
@@ -105,18 +105,32 @@ function SidebarContent() {
               onOpenChange={() => handleMenuToggle('ventas')}
             >
               <div className="space-y-1">
-                <div className="flex items-center justify-stretch space-x-4 px-4">
-                  <h4 className="text-lg font-semibold mr-4">Ventas</h4>
+                <div
+                  className={cn(
+                    'flex justify-between',
+                    activeMenu === 'ventas' && 'bg-slate-200 dark:bg-slate-800 rounded-sm'
+                  )}
+                >
                   <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <ChevronUp
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-lg font-semibold hover:bg-transparent dark:hover:bg-transparent"
+                    >
+                      Ventas
+                      <span className="sr-only">Toggle</span>
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleTrigger asChild>
+                    <span className="my-auto">
+                      <ChevronDown
                         className={cn(
                           'h-4 w-4 transition-transform duration-300',
-                          activeMenu !== 'ventas' && 'rotate-180'
+                          activeMenu !== 'ventas' && 'rotate-90'
                         )}
                       />
                       <span className="sr-only">Toggle</span>
-                    </Button>
+                    </span>
                   </CollapsibleTrigger>
                 </div>
                 <CollapsibleContent>
@@ -148,18 +162,32 @@ function SidebarContent() {
               onOpenChange={() => handleMenuToggle('compras')}
             >
               <div className="space-y-1">
-                <div className="flex items-center justify-stretch space-x-4 px-4">
-                  <h4 className="text-lg font-semibold">Compras</h4>
+                <div
+                  className={cn(
+                    'flex justify-between',
+                    activeMenu === 'compras' && 'bg-slate-200 dark:bg-slate-800 rounded-sm'
+                  )}
+                >
                   <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <ChevronUp
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-lg font-semibold hover:bg-transparent dark:hover:bg-transparent"
+                    >
+                      Compras
+                      <span className="sr-only">Toggle</span>
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleTrigger asChild>
+                    <span className="my-auto">
+                      <ChevronDown
                         className={cn(
                           'h-4 w-4 transition-transform duration-300',
-                          activeMenu !== 'compras' && 'rotate-180'
+                          activeMenu !== 'compras' && 'rotate-90'
                         )}
                       />
                       <span className="sr-only">Toggle</span>
-                    </Button>
+                    </span>
                   </CollapsibleTrigger>
                 </div>
                 <CollapsibleContent>
@@ -192,18 +220,32 @@ function SidebarContent() {
               className="transition-all duration-500 ease-in-out"
             >
               <div className="space-y-1">
-                <div className="flex items-center justify-stretch space-x-4 px-4">
-                  <h4 className="text-lg font-semibold">Almacen</h4>
+                <div
+                  className={cn(
+                    'flex justify-between',
+                    activeMenu === 'almacen' && 'bg-slate-200 dark:bg-slate-800 rounded-sm'
+                  )}
+                >
                   <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <ChevronUp
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-lg font-semibold hover:bg-transparent dark:hover:bg-transparent"
+                    >
+                      Almacen
+                      <span className="sr-only">Toggle</span>
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleTrigger asChild>
+                    <span className="my-auto">
+                      <ChevronDown
                         className={cn(
                           'h-4 w-4 transition-transform duration-300',
-                          activeMenu !== 'almacen' && 'rotate-180'
+                          activeMenu !== 'almacen' && 'rotate-90'
                         )}
                       />
                       <span className="sr-only">Toggle</span>
-                    </Button>
+                    </span>
                   </CollapsibleTrigger>
                 </div>
                 <CollapsibleContent className="transition-all duration-500 ease-in-out">
@@ -235,19 +277,32 @@ function SidebarContent() {
               onOpenChange={() => handleMenuToggle('usuarios')}
             >
               <div className="space-y-1">
-                <div className="flex items-center justify-stretch space-x-4 px-4">
-                  <h4 className="text-lg font-semibold">Usuarios</h4>
+                <div
+                  className={cn(
+                    'flex justify-between',
+                    activeMenu === 'usuarios' && 'bg-slate-200 dark:bg-slate-800 rounded-sm'
+                  )}
+                >
                   <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <ChevronUp
-                        className={cn(
-                          'h-4 w-4 transition-transform duration-300',
-                          activeMenu !== 'usuarios' && 'rotate-180'
-                        )}
-                      />
-
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-lg font-semibold hover:bg-transparent dark:hover:bg-transparent"
+                    >
+                      Usuarios
                       <span className="sr-only">Toggle</span>
                     </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleTrigger asChild>
+                    <span className="my-auto">
+                      <ChevronDown
+                        className={cn(
+                          'h-4 w-4 transition-transform duration-300',
+                          activeMenu !== 'usuarios' && 'rotate-90'
+                        )}
+                      />
+                      <span className="sr-only">Toggle</span>
+                    </span>
                   </CollapsibleTrigger>
                 </div>
                 <CollapsibleContent>
@@ -279,18 +334,32 @@ function SidebarContent() {
               onOpenChange={() => handleMenuToggle('reportes')}
             >
               <div className="space-y-1">
-                <div className="flex items-center justify-stretch space-x-4 px-4">
-                  <h4 className="text-lg font-semibold">Reportes</h4>
+                <div
+                  className={cn(
+                    'flex justify-between',
+                    activeMenu === 'reportes' && 'bg-slate-200 dark:bg-slate-800 rounded-sm'
+                  )}
+                >
                   <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <ChevronUp
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-lg font-semibold hover:bg-transparent dark:hover:bg-transparent"
+                    >
+                      Reportes
+                      <span className="sr-only">Toggle</span>
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleTrigger asChild>
+                    <span className="my-auto">
+                      <ChevronDown
                         className={cn(
-                          'h-4 w-4 transition-transform duaration-300',
-                          activeMenu !== 'reportes' && 'rotate-180'
+                          'h-4 w-4 transition-transform duration-300',
+                          activeMenu !== 'reportes' && 'rotate-90'
                         )}
                       />
                       <span className="sr-only">Toggle</span>
-                    </Button>
+                    </span>
                   </CollapsibleTrigger>
                 </div>
                 <CollapsibleContent>
@@ -322,18 +391,32 @@ function SidebarContent() {
               onOpenChange={() => handleMenuToggle('documentos')}
             >
               <div className="space-y-1">
-                <div className="flex items-center justify-stretch space-x-4 px-4">
-                  <h4 className="text-lg font-semibold">Documentos</h4>
+                <div
+                  className={cn(
+                    'flex justify-between',
+                    activeMenu === 'documentos' && 'bg-slate-200 dark:bg-slate-800 rounded-sm'
+                  )}
+                >
                   <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <ChevronUp
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-lg font-semibold hover:bg-transparent dark:hover:bg-transparent"
+                    >
+                      Administrador
+                      <span className="sr-only">Toggle</span>
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleTrigger asChild>
+                    <span className="my-auto">
+                      <ChevronDown
                         className={cn(
-                          'h-4 w-4 transition-transform duaration-300',
-                          activeMenu !== 'documentos' && 'rotate-180'
+                          'h-4 w-4 transition-transform duration-300',
+                          activeMenu !== 'documentos' && 'rotate-90'
                         )}
                       />
                       <span className="sr-only">Toggle</span>
-                    </Button>
+                    </span>
                   </CollapsibleTrigger>
                 </div>
                 <CollapsibleContent>
@@ -419,7 +502,7 @@ export function AppSidebar() {
     <aside
       className={cn(
         'h-screen fixed top-0 border-r bg-background transition-all duration-300',
-        isOpen ? 'w-60' : 'w-[90px]'
+        isOpen ? 'w-56' : 'w-[90px]'
       )}
     >
       <SidebarContent />

@@ -718,6 +718,8 @@ export default function ProductosPage() {
       <div className="flex-1 mb-4">
         <Input
           type="search"
+          id="searchProduct"
+          name="searchProduct"
           placeholder="Buscar..."
           className="w-[300px] h-[32px] bg-muted max-w-full"
           prefix={<Search className="h-4 w-4 text-muted-foreground" />}

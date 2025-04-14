@@ -21,19 +21,13 @@ export function AppHeader() {
     <header
       className={cn(
         'h-16 border-b fixed top-0 right-0 bg-background z-10 transition-all duration-300',
-        isMobile ? 'left-0' : isOpen ? 'left-60' : 'left-[90px]'
+        isMobile ? 'left-0' : isOpen ? 'left-56' : 'left-[90px]'
       )}
     >
       <div className="h-full flex items-center justify-between px-6">
-        <div className="flex-1">
-          {/* <Input
-            type="search"
-            placeholder="Buscar..."
-            className="w-[400px] bg-muted max-w-full"
-            prefix={<Search className="h-4 w-4 text-muted-foreground" />}
-          /> */}
-          <label className="font-extrabold text-3xl block">FARMALAB SAC</label>
-          <label className="font-semibold">RUC:27283920192</label>
+        <div className="grid gap-0">
+          <span className="font-extrabold text-3xl leading-none">FARMALAB SAC</span>
+          <span className="text-sm font-semibold">RUC:27283920192</span>
         </div>
 
         <div className="flex items-center gap-4">

@@ -66,7 +66,6 @@ model Usuarios {
   createdAt DateTime @default(now())
 
   ventas             Ventas[]
-  compras            Compras[]
   AperturaCierreCaja AperturaCierreCaja[]
   Caja               Caja[]
 }
@@ -99,14 +98,14 @@ model Ventas {
   clienteId           Int
   fecha_venta         DateTime @default(now())
   tipo_pago           String
-  tipo_comprobante_id Int?
+  tipo_comprobante_id Int
   estado              String   @default("PENDIENTE")
   usuarioId           Int
 
-  cliente          Clientes         @relation(fields: [clienteId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  usuario          Usuarios         @relation(fields: [usuarioId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  cliente          Clientes        @relation(fields: [clienteId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  usuario          Usuarios        @relation(fields: [usuarioId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   detalleVentas    DetalleVentas[]
-  tipo_comprobante TipoComprobante? @relation(fields: [tipo_comprobante_id], references: [id])
+  tipo_comprobante TipoComprobante @relation(fields: [tipo_comprobante_id], references: [id])
 }
 
 model DetalleVentas {
@@ -123,18 +122,18 @@ model DetalleVentas {
 
 model Compras {
   id                  Int      @id @default(autoincrement())
-  nro_comprobante     String?
   proveedorId         Int
+  tipo_comprobante_id Int
+  nro_comprobante     String?
   fecha_compra        DateTime @default(now())
-  tipo_pago           String
-  tipo_comprobante_id Int?
+  fecha_vencimiento   DateTime @default(now())
+  tipo_moneda         String   @default("PEN")
+  forma_pago          String   @default("CONTADO")
   estado              String   @default("PENDIENTE")
-  usuarioId           Int
 
-  proveedor       Proveedores      @relation(fields: [proveedorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  usuario         Usuarios         @relation(fields: [usuarioId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   detalleCompras  DetalleCompras[]
-  tipoComprobante TipoComprobante? @relation(fields: [tipo_comprobante_id], references: [id])
+  proveedor       Proveedores      @relation(fields: [proveedorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  tipoComprobante TipoComprobante  @relation(fields: [tipo_comprobante_id], references: [id])
 }
 
 model DetalleCompras {
@@ -143,6 +142,7 @@ model DetalleCompras {
   productoId    Int
   cantidad      Int
   precio_compra Float
+  descuento     Float @default(0)
 
   compra   Compras   @relation(fields: [compraId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   producto Productos @relation(fields: [productoId], references: [id], onDelete: Restrict, onUpdate: Cascade)

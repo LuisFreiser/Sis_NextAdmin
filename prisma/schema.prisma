@@ -89,7 +89,6 @@ model Productos {
   marca          Marca            @relation(fields: [marcaId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   detalleVentas  DetalleVentas[]
   detalleCompras DetalleCompras[]
-  lote_producto  LoteProducto[]
 }
 
 model Ventas {
@@ -105,7 +104,7 @@ model Ventas {
   cliente          Clientes        @relation(fields: [clienteId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   usuario          Usuarios        @relation(fields: [usuarioId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   detalleVentas    DetalleVentas[]
-  tipo_comprobante TipoComprobante @relation(fields: [tipo_comprobante_id], references: [id])
+  tipo_comprobante TipoComprobante @relation(fields: [tipo_comprobante_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 }
 
 model DetalleVentas {
@@ -133,30 +132,28 @@ model Compras {
 
   detalleCompras  DetalleCompras[]
   proveedor       Proveedores      @relation(fields: [proveedorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  tipoComprobante TipoComprobante  @relation(fields: [tipo_comprobante_id], references: [id])
+  tipoComprobante TipoComprobante  @relation(fields: [tipo_comprobante_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
 }
 
 model DetalleCompras {
-  id            Int   @id @default(autoincrement())
-  compraId      Int
-  productoId    Int
-  cantidad      Int
-  precio_compra Float
-  descuento     Float @default(0)
+  id              Int   @id @default(autoincrement())
+  compraId        Int
+  productoId      Int
+  lote_productoId Int
+  cantidad        Int
+  precio_compra   Float
 
-  compra   Compras   @relation(fields: [compraId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  producto Productos @relation(fields: [productoId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  compra       Compras       @relation(fields: [compraId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  producto     Productos     @relation(fields: [productoId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  loteProducto LoteProductos @relation(fields: [lote_productoId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 }
 
-model LoteProducto {
+model LoteProductos {
   id                Int      @id @default(autoincrement())
-  productoId        Int
-  fecha_ingreso     DateTime
+  numero_lote       String
   fecha_vencimiento DateTime
-  numero_lote       String?
-  nro_orden_compra  String?
 
-  producto Productos @relation(fields: [productoId], references: [id])
+  detalleCompras DetalleCompras[]
 }
 
 model TipoComprobante {

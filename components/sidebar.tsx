@@ -8,52 +8,53 @@ import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/hooks/useSidebar';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
-// Actualizar las importaciones de iconos
+// IMPORTAR ICONOS
 import {
   Package,
-  BookmarkCheck,
-  Store,
   ShoppingCart,
-  ClipboardList,
   Users,
-  FileSearch,
-  Settings, // Añadir para Configuración
-  Info, // Añadir para Acerca de
+  Settings,
+  Info,
   Receipt,
   ChevronLeft,
   ChevronDown,
   Menu,
+  CircleCheckBig,
+  NotepadText,
+  UserRoundCheck,
 } from 'lucide-react';
 
 const almacenMenuItems = [
-  { icon: Package, label: 'Productos', path: '/productos' },
-  { icon: BookmarkCheck, label: 'Marcas', path: '/marcas' },
+  { icon: CircleCheckBig, label: 'Productos', path: '/productos' },
+  { icon: CircleCheckBig, label: 'Marcas', path: '/marcas' },
 ];
 
 const comprasMenuItems = [
-  { icon: Store, label: 'Proveedores', path: '/proveedores' },
-  { icon: ShoppingCart, label: 'Registrar Compras', path: '/compras' },
-  { icon: ClipboardList, label: 'Consultar Compras', path: '/profile' },
+  { icon: CircleCheckBig, label: 'Proveedores', path: '/proveedores' },
+  { icon: CircleCheckBig, label: 'Registrar Compras', path: '/compras' },
+  { icon: CircleCheckBig, label: 'Consultar Compras', path: '/profile' },
 ];
 
 const ventasMenuItems = [
-  { icon: Users, label: 'Clientes', path: '/clientes' },
-  { icon: Receipt, label: 'Registrar Ventas', path: '/compras' },
-  { icon: FileSearch, label: 'Consultar Ventas', path: '/profile' },
+  { icon: CircleCheckBig, label: 'Clientes', path: '/clientes' },
+  { icon: CircleCheckBig, label: 'Registrar Ventas', path: '/compras' },
+  { icon: CircleCheckBig, label: 'Consultar Ventas', path: '/profile' },
 ];
 
-const usuariosMenuItems = [{ icon: Users, label: 'Registrar usuarios', path: '/registroUsuario' }];
+const usuariosMenuItems = [
+  { icon: CircleCheckBig, label: 'Registrar usuarios', path: '/registroUsuario' },
+];
 
 const reportesMenuItems = [
-  { icon: Users, label: 'Ventas Diarias', path: '' },
-  { icon: Receipt, label: 'Registrar Ventas', path: '/compras' },
-  { icon: FileSearch, label: 'Consultar Ventas', path: '/profile' },
+  { icon: CircleCheckBig, label: 'Ventas Diarias', path: '' },
+  { icon: CircleCheckBig, label: 'Registrar Ventas', path: '/compras' },
+  { icon: CircleCheckBig, label: 'Consultar Ventas', path: '/profile' },
 ];
 
 const documentosMenuItems = [
-  { icon: Users, label: 'Tipo Documento', path: '/tipoDocumento' },
-  { icon: Receipt, label: 'Tipo Comprobante', path: '/tipoComprobante' },
-  { icon: FileSearch, label: 'Serie Comprobante', path: '/serieComprobante' },
+  { icon: CircleCheckBig, label: 'Tipo Documento', path: '/tipoDocumento' },
+  { icon: CircleCheckBig, label: 'Tipo Comprobante', path: '/tipoComprobante' },
+  { icon: CircleCheckBig, label: 'Serie Comprobante', path: '/serieComprobante' },
 ];
 
 const supportMenuItems = [
@@ -117,6 +118,7 @@ function SidebarContent() {
                       size="sm"
                       className="text-lg font-semibold hover:bg-transparent dark:hover:bg-transparent"
                     >
+                      <Receipt />
                       Ventas
                       <span className="sr-only">Toggle</span>
                     </Button>
@@ -174,6 +176,7 @@ function SidebarContent() {
                       size="sm"
                       className="text-lg font-semibold hover:bg-transparent dark:hover:bg-transparent"
                     >
+                      <ShoppingCart />
                       Compras
                       <span className="sr-only">Toggle</span>
                     </Button>
@@ -232,6 +235,7 @@ function SidebarContent() {
                       size="sm"
                       className="text-lg font-semibold hover:bg-transparent dark:hover:bg-transparent"
                     >
+                      <Package />
                       Almacen
                       <span className="sr-only">Toggle</span>
                     </Button>
@@ -289,6 +293,7 @@ function SidebarContent() {
                       size="sm"
                       className="text-lg font-semibold hover:bg-transparent dark:hover:bg-transparent"
                     >
+                      <Users />
                       Usuarios
                       <span className="sr-only">Toggle</span>
                     </Button>
@@ -346,6 +351,7 @@ function SidebarContent() {
                       size="sm"
                       className="text-lg font-semibold hover:bg-transparent dark:hover:bg-transparent"
                     >
+                      <NotepadText />
                       Reportes
                       <span className="sr-only">Toggle</span>
                     </Button>
@@ -403,7 +409,8 @@ function SidebarContent() {
                       size="sm"
                       className="text-lg font-semibold hover:bg-transparent dark:hover:bg-transparent"
                     >
-                      Administrador
+                      <UserRoundCheck />
+                      Administ
                       <span className="sr-only">Toggle</span>
                     </Button>
                   </CollapsibleTrigger>

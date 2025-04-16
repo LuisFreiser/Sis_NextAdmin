@@ -33,6 +33,7 @@ import {
   DollarSign,
   FileText,
   Store,
+  FileDown,
 } from 'lucide-react';
 import {
   Select,
@@ -60,6 +61,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
+// import { set } from 'date-fns';
 
 type Proveedor = {
   id: number;
@@ -80,12 +82,18 @@ type TipoComprobante = {
   nombre: string;
 };
 
+type LoteProducto = {
+  id: number;
+  numero_lote: string;
+  fecha_vencimiento: Date;
+};
+
 type DetalleCompra = {
   id?: number;
   productoId: number;
   cantidad: number;
   precio_compra: number;
-  descuento: number;
+  lote_productoId?: number;
   producto?: Producto;
   subtotal?: number;
 };
@@ -111,6 +119,13 @@ export default function ComprasPage() {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [tiposComprobante, setTiposComprobante] = useState<TipoComprobante[]>([]);
+  // AGREGAR ESTADO PARA LOTES DE PRODUCTOS
+  const [lotes, setLotes] = useState<LoteProducto[]>([]);
+  // Agregar junto a los otros estados
+  const [nuevoLote, setNuevoLote] = useState({
+    numero_lote: '',
+    fecha_vencimiento: '',
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -128,36 +143,41 @@ export default function ComprasPage() {
 
   const [detallesCompra, setDetallesCompra] = useState<DetalleCompra[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [selectedLoteId, setSelectedLoteId] = useState<string>('');
   const [cantidad, setCantidad] = useState<string>('');
   const [precioCompra, setPrecioCompra] = useState<string>('');
-  const [descuento, setDescuento] = useState<string>('');
+  //const [descuento, setDescuento] = useState<string>('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [comprasRes, proveedoresRes, productosRes, tiposComprobanteRes] = await Promise.all([
-          fetch('/api/compras'),
-          fetch('/api/proveedores'),
-          fetch('/api/productos'),
-          fetch('/api/tipoComprobante'),
-        ]);
+        const [comprasRes, proveedoresRes, productosRes, tiposComprobanteRes, lotesRes] =
+          await Promise.all([
+            fetch('/api/compras'),
+            fetch('/api/proveedores'),
+            fetch('/api/productos'),
+            fetch('/api/tipoComprobante'),
+            fetch('/api/loteProductos'),
+          ]);
 
         if (!comprasRes.ok || !proveedoresRes.ok || !productosRes.ok || !tiposComprobanteRes.ok) {
           throw new Error('Error al cargar los datos');
         }
 
-        const [comprasData, proveedoresData, productosData, tiposComprobanteData] =
+        const [comprasData, proveedoresData, productosData, tiposComprobanteData, lotesData] =
           await Promise.all([
             comprasRes.json(),
             proveedoresRes.json(),
             productosRes.json(),
             tiposComprobanteRes.json(),
+            lotesRes.json(),
           ]);
 
         setCompras(comprasData);
         setProveedores(proveedoresData);
         setProductos(productosData);
         setTiposComprobante(tiposComprobanteData);
+        setLotes(lotesData);
         toast.success('Datos cargados exitosamente');
       } catch (error) {
         console.error('Error:', error);
@@ -170,27 +190,58 @@ export default function ComprasPage() {
     fetchData();
   }, []);
 
-  const handleAgregarDetalle = () => {
-    const productoId = Number(selectedProductId);
-    const cantidadNum = Number(cantidad);
-    const precioCompraNum = Number(precioCompra);
-    const descuentoNum = Number(descuento || 0);
-
-    if (!productoId || !cantidadNum || !precioCompraNum) {
-      toast.error('Por favor complete todos los campos del detalle');
+  // Agregar junto a las otras funciones
+  const handleCrearLote = async () => {
+    if (!nuevoLote.numero_lote || !nuevoLote.fecha_vencimiento) {
+      toast.error('Por favor complete todos los campos del lote');
       return;
     }
 
+    try {
+      const response = await fetch('/api/loteProductos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nuevoLote),
+      });
+
+      if (response.ok) {
+        const loteCreado = await response.json();
+        setLotes([...lotes, loteCreado]);
+        setSelectedLoteId(loteCreado.id.toString());
+        toast.success('Lote creado exitosamente');
+      } else {
+        toast.error('Error al crear el lote');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Error al crear el lote');
+    }
+  };
+
+  //FUNCION PARA AGREGAR DETALLE DE COMPRA
+  const handleAgregarDetalle = () => {
+    const productoId = Number(selectedProductId);
+    const lote_productoId = Number(selectedLoteId);
+    const cantidadNum = Number(cantidad);
+    const precioCompraNum = Number(precioCompra);
+
+    if (!productoId || !lote_productoId || !cantidadNum || !precioCompraNum) {
+      toast.error('Por favor complete todos los campos del detalle');
+      return;
+    }
+    //BUSCAMOS PRODUCTO Y LOTE POR ID
     const producto = productos.find((p) => p.id === productoId);
     if (!producto) return;
+    const lote = lotes.find((l) => l.id === lote_productoId);
+    if (!lote) return;
 
-    const subtotal = cantidadNum * precioCompraNum - descuentoNum;
+    const subtotal = cantidadNum * precioCompraNum;
 
     const nuevoDetalle: DetalleCompra = {
       productoId,
+      lote_productoId,
       cantidad: cantidadNum,
       precio_compra: precioCompraNum,
-      descuento: descuentoNum,
       producto,
       subtotal,
     };
@@ -199,11 +250,12 @@ export default function ComprasPage() {
 
     // Limpiar campos
     setSelectedProductId('');
+    setSelectedLoteId('');
     setCantidad('');
     setPrecioCompra('');
-    setDescuento('');
   };
 
+  //FUNCION PARA CREAR LA COMPRA
   const handleCrearCompra = async () => {
     if (
       !nuevaCompra.proveedorId ||
@@ -221,7 +273,12 @@ export default function ComprasPage() {
 
     const compraData = {
       ...nuevaCompra,
-      detalleCompras: detallesCompra,
+      detalleCompras: detallesCompra.map((detalle) => ({
+        productoId: detalle.productoId,
+        cantidad: detalle.cantidad,
+        precio_compra: detalle.precio_compra,
+        lote_productoId: detalle.lote_productoId,
+      })),
     };
 
     toast.promise(
@@ -265,9 +322,10 @@ export default function ComprasPage() {
     );
   };
 
+  //FUNCION PARA CALCULAR EL TOTAL DE LA COMPRA
   const calcularTotal = (detalles: DetalleCompra[]) => {
     return detalles.reduce((total, detalle) => {
-      const subtotal = detalle.cantidad * detalle.precio_compra - (detalle.descuento || 0);
+      const subtotal = detalle.cantidad * detalle.precio_compra;
       return total + subtotal;
     }, 0);
   };
@@ -279,7 +337,7 @@ export default function ComprasPage() {
       compra.proveedor.nombre.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  //PAGINACION DE COMPRAS
+  //PAGINACION DE TABLA COMPRAS
   const paginatedCompras = filteredCompras.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -324,7 +382,7 @@ export default function ComprasPage() {
               <FilePlus2 /> Nueva Compra
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl">
+          <DialogContent className="max-w-5xl">
             <DialogHeader>
               <DialogTitle>
                 <FileText className="inline mr-2" />
@@ -501,7 +559,7 @@ export default function ComprasPage() {
             {/* DETALLES DE COMPRAS */}
             <div className="mt-4">
               <h3 className="text-lg font-semibold mb-2">Detalle de Productos</h3>
-              <div className="grid grid-cols-7 gap-2 mb-2">
+              <div className="grid grid-cols-9 gap-2 mb-2">
                 <label className="col-span-3">
                   <Popover>
                     <PopoverTrigger asChild>
@@ -514,11 +572,11 @@ export default function ComprasPage() {
                         <ChevronRight className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-0">
+                    <PopoverContent className="w-[350px] p-0">
                       <Command>
                         <CommandInput placeholder="Buscar producto..." />
                         <CommandList>
-                          <CommandEmpty>No se encontraron productos.</CommandEmpty>
+                          <CommandEmpty>No se encontraron productos..</CommandEmpty>
                           <CommandGroup>
                             {productos.map((producto) => (
                               <CommandItem
@@ -546,6 +604,107 @@ export default function ComprasPage() {
                     </PopoverContent>
                   </Popover>
                 </label>
+                <Button className="text-xs font-semibold">
+                  Agregar
+                  <br /> Producto
+                </Button>
+                {/*SELECT DE POPOVER LOTE PRODUCTOS */}
+                <label className="col-span-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" className="w-full justify-between">
+                        {selectedLoteId ? (
+                          lotes.find((p) => p.id === Number(selectedLoteId))?.numero_lote
+                        ) : (
+                          <span className="text-gray-600">Buscar lote..</span>
+                        )}
+                        <ChevronRight className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[250px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Buscar lote.." />
+                        <CommandList>
+                          <CommandEmpty>No se encontraron lotes..</CommandEmpty>
+                          <CommandGroup>
+                            {lotes.map((lote) => (
+                              <CommandItem
+                                key={lote.id}
+                                value={lote.numero_lote}
+                                onSelect={() => {
+                                  setSelectedLoteId(lote.id.toString());
+                                  // setPrecioCompra(lote.precio_compra.toString());
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    'mr-2 h-4 w-4',
+                                    selectedLoteId === lote.id.toString()
+                                      ? 'opacity-100'
+                                      : 'opacity-0'
+                                  )}
+                                />
+                                {lote.numero_lote}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="mt-2 w-full">
+                        <FilePlus2 className="h-4 w-4 mr-2" />
+                        Nuevo Lote
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Crear Nuevo Lote</DialogTitle>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <label htmlFor="numero_lote" className="text-right">
+                            Número de Lote
+                          </label>
+                          <Input
+                            id="numero_lote"
+                            className="col-span-3"
+                            onChange={(e) =>
+                              setNuevoLote({
+                                ...nuevoLote,
+                                numero_lote: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <label htmlFor="fecha_vencimiento" className="text-right">
+                            Fecha Vencimiento
+                          </label>
+                          <Input
+                            id="fecha_vencimiento"
+                            type="date"
+                            className="col-span-3"
+                            onChange={(e) =>
+                              setNuevoLote({
+                                ...nuevoLote,
+                                fecha_vencimiento: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                      <DialogClose asChild>
+                        <Button type="submit" onClick={handleCrearLote}>
+                          Guardar Lote
+                        </Button>
+                      </DialogClose>
+                    </DialogContent>
+                  </Dialog>
+                </label>
+
                 <Input
                   type="number"
                   placeholder="Cantidad"
@@ -556,21 +715,24 @@ export default function ComprasPage() {
                 />
                 <Input
                   type="number"
-                  placeholder="Precio"
+                  placeholder="P.Costo"
                   step="0.01"
                   min="0"
                   value={precioCompra}
                   onChange={(e) => setPrecioCompra(e.target.value)}
                 />
-                <Input
+                {/* <Input
                   type="number"
-                  placeholder="Descuento"
+                  placeholder="Desct %"
                   step="0.01"
                   min="0"
                   value={descuento}
                   onChange={(e) => setDescuento(e.target.value)}
-                />
-                <Button onClick={handleAgregarDetalle}>Agregar</Button>
+                /> */}
+                <Button onClick={handleAgregarDetalle} className="font-semibold">
+                  <FileDown />
+                  Agregar
+                </Button>
               </div>
 
               <Table>
@@ -579,7 +741,7 @@ export default function ComprasPage() {
                     <TableHead>Producto</TableHead>
                     <TableHead>Cantidad</TableHead>
                     <TableHead>Precio</TableHead>
-                    <TableHead>Descuento</TableHead>
+                    {/* <TableHead>Descuento</TableHead> */}
                     <TableHead>Subtotal</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -594,12 +756,12 @@ export default function ComprasPage() {
                           currency: 'PEN',
                         }).format(detalle.precio_compra)}
                       </TableCell>
-                      <TableCell>
+                      {/* <TableCell>
                         {new Intl.NumberFormat('es-PE', {
                           style: 'currency',
                           currency: 'PEN',
                         }).format(detalle.descuento || 0)}
-                      </TableCell>
+                      </TableCell> */}
                       <TableCell>
                         {new Intl.NumberFormat('es-PE', {
                           style: 'currency',
@@ -673,7 +835,7 @@ export default function ComprasPage() {
                 <TableCell>
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      compra.estado === 'COMPLETADO'
+                      compra.estado === 'CANCELADO'
                         ? 'bg-green-600 text-white'
                         : compra.estado === 'PENDIENTE'
                         ? 'bg-yellow-500 text-white'

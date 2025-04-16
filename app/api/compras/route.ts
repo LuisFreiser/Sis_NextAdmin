@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { DetalleCompras } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 
+//FUNCION PARA OBTENER TODAS LAS COMPRAS
 export async function GET() {
   try {
     const compras = await prisma.compras.findMany({
@@ -40,6 +41,7 @@ export async function GET() {
   }
 }
 
+//FUNCION PARA CREAR UNA COMPRA
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
@@ -64,7 +66,6 @@ export async function POST(req: NextRequest) {
               productoId: detalle.productoId,
               cantidad: detalle.cantidad,
               precio_compra: detalle.precio_compra,
-              descuento: detalle.descuento || 0,
             })),
           },
         },
@@ -91,7 +92,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Actualizar el stock de los productos
+      // ACTUALIZAR EL STOCK DE LOS PRODUCTOS
       for (const detalle of detalleCompras) {
         await prisma.productos.update({
           where: { id: detalle.productoId },
@@ -116,6 +117,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
+//FUNCION PUT PARA ACTUALIZAR UNA COMPRA
 export async function PUT(req: NextRequest) {
   try {
     const data = await req.json();
@@ -139,7 +141,7 @@ export async function PUT(req: NextRequest) {
         throw new Error('Compra no encontrada');
       }
 
-      // Revertir el stock actual
+      // REVERTIR EL STOCK ANTERIOR
       for (const detalle of compraActual.detalleCompras) {
         await prisma.productos.update({
           where: { id: detalle.productoId },
@@ -151,12 +153,12 @@ export async function PUT(req: NextRequest) {
         });
       }
 
-      // Eliminar detalles actuales
+      // ELIMINAR DETALLES ANTERIORES
       await prisma.detalleCompras.deleteMany({
         where: { compraId: id },
       });
 
-      // Actualizar la compra con nuevos detalles
+      // ACTUALIZAR LA COMPRA Y SUS DETALLES
       const compra = await prisma.compras.update({
         where: { id },
         data: {
@@ -166,7 +168,6 @@ export async function PUT(req: NextRequest) {
               productoId: detalle.productoId,
               cantidad: detalle.cantidad,
               precio_compra: detalle.precio_compra,
-              descuento: detalle.descuento || 0,
             })),
           },
         },
@@ -193,7 +194,7 @@ export async function PUT(req: NextRequest) {
         },
       });
 
-      // Actualizar el stock con los nuevos detalles
+      // ACTUALIZAR EL STOCK CON EL NUEVO DETALLE
       for (const detalle of detalleCompras) {
         await prisma.productos.update({
           where: { id: detalle.productoId },
@@ -218,6 +219,7 @@ export async function PUT(req: NextRequest) {
   }
 }
 
+//FUNCION PATCH PARA ACTUALIZAR EL ESTADO DE UNA COMPRA
 export async function PATCH(req: NextRequest) {
   try {
     const { id, estado } = await req.json();

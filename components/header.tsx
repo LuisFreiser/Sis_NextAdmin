@@ -26,7 +26,7 @@ export function AppHeader() {
     >
       <div className="h-full flex items-center justify-between px-6">
         <div className="grid gap-0">
-          <span className="font-extrabold text-3xl leading-none">FARMALAB SAC</span>
+          <span className="font-extrabold text-3xl leading-none">BOTICA BOLOGNESI S.R.L</span>
           <span className="text-sm font-semibold">RUC:27283920192</span>
         </div>
 

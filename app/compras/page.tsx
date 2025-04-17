@@ -29,11 +29,12 @@ import {
   Search,
   Printer,
   Save,
-  Calendar,
+  Calendar as CalendarIcon,
   DollarSign,
   FileText,
   Store,
   FileDown,
+  Check,
 } from 'lucide-react';
 import {
   Select,
@@ -59,9 +60,10 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { Check } from 'lucide-react';
-// import { set } from 'date-fns';
 
 type Proveedor = {
   id: number;
@@ -69,11 +71,17 @@ type Proveedor = {
   nro_documento: string;
 };
 
+type Marca = {
+  id: number;
+  nombre: string;
+};
+
 type Producto = {
   id: number;
   nombre: string;
   precio_compra: number;
   stock_cajas: number;
+  marca?: Marca; // Agregamos la relación con marca
 };
 
 type TipoComprobante = {
@@ -95,6 +103,7 @@ type DetalleCompra = {
   precio_compra: number;
   lote_productoId?: number;
   producto?: Producto;
+  lote?: LoteProducto;
   subtotal?: number;
 };
 
@@ -121,7 +130,7 @@ export default function ComprasPage() {
   const [tiposComprobante, setTiposComprobante] = useState<TipoComprobante[]>([]);
   // AGREGAR ESTADO PARA LOTES DE PRODUCTOS
   const [lotes, setLotes] = useState<LoteProducto[]>([]);
-  // Agregar junto a los otros estados
+  // AGREGAR ESTADO PARA CREAR NUEVO LOTE
   const [nuevoLote, setNuevoLote] = useState({
     numero_lote: '',
     fecha_vencimiento: '',
@@ -138,7 +147,7 @@ export default function ComprasPage() {
     fecha_vencimiento: new Date().toISOString(), // Cambiado para incluir la hora
     tipo_moneda: 'PEN',
     forma_pago: 'CONTADO',
-    estado: 'PENDIENTE',
+    estado: 'CANCELADO',
   });
 
   const [detallesCompra, setDetallesCompra] = useState<DetalleCompra[]>([]);
@@ -146,7 +155,9 @@ export default function ComprasPage() {
   const [selectedLoteId, setSelectedLoteId] = useState<string>('');
   const [cantidad, setCantidad] = useState<string>('');
   const [precioCompra, setPrecioCompra] = useState<string>('');
-  //const [descuento, setDescuento] = useState<string>('');
+  // Estados para controlar la apertura de los Popovers de fecha
+  const [fechaCompraOpen, setFechaCompraOpen] = useState(false);
+  const [fechaVencimientoOpen, setFechaVencimientoOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -190,7 +201,7 @@ export default function ComprasPage() {
     fetchData();
   }, []);
 
-  // Agregar junto a las otras funciones
+  //FUNCION PARA CREAR UN NUEVO LOTE
   const handleCrearLote = async () => {
     if (!nuevoLote.numero_lote || !nuevoLote.fecha_vencimiento) {
       toast.error('Por favor complete todos los campos del lote');
@@ -229,7 +240,7 @@ export default function ComprasPage() {
       toast.error('Por favor complete todos los campos del detalle');
       return;
     }
-    //BUSCAMOS PRODUCTO Y LOTE POR ID
+    //BUSCAMOS PRODUCTO Y LOTE POR ID USAMOS EN POPOVER
     const producto = productos.find((p) => p.id === productoId);
     if (!producto) return;
     const lote = lotes.find((l) => l.id === lote_productoId);
@@ -243,19 +254,20 @@ export default function ComprasPage() {
       cantidad: cantidadNum,
       precio_compra: precioCompraNum,
       producto,
+      lote,
       subtotal,
     };
 
     setDetallesCompra([...detallesCompra, nuevoDetalle]);
 
-    // Limpiar campos
+    // LIMPIAMOS LOS CAMPOS AL AGREGAR DETALLE
     setSelectedProductId('');
     setSelectedLoteId('');
     setCantidad('');
     setPrecioCompra('');
   };
 
-  //FUNCION PARA CREAR LA COMPRA
+  //FUNCION PARA CREAR LA COMPRA DE PRODUCTOS
   const handleCrearCompra = async () => {
     if (
       !nuevaCompra.proveedorId ||
@@ -273,11 +285,15 @@ export default function ComprasPage() {
 
     const compraData = {
       ...nuevaCompra,
+      fecha_compra:
+        new Date(nuevaCompra.fecha_compra || new Date()).toISOString().split('.')[0] + 'Z',
+      fecha_vencimiento:
+        new Date(nuevaCompra.fecha_vencimiento || new Date()).toISOString().split('.')[0] + 'Z',
       detalleCompras: detallesCompra.map((detalle) => ({
         productoId: detalle.productoId,
+        lote_productoId: detalle.lote_productoId,
         cantidad: detalle.cantidad,
         precio_compra: detalle.precio_compra,
-        lote_productoId: detalle.lote_productoId,
       })),
     };
 
@@ -290,28 +306,28 @@ export default function ComprasPage() {
             body: JSON.stringify(compraData),
           });
 
-          const data = await response.json();
-
-          if (response.ok) {
-            setCompras((prev) => [...prev, data]);
-            setNuevaCompra({
-              proveedorId: 0,
-              tipo_comprobante_id: 0,
-              nro_comprobante: '',
-              fecha_compra: new Date().toISOString().split('T')[0],
-              fecha_vencimiento: new Date().toISOString().split('T')[0],
-              tipo_moneda: 'PEN',
-              forma_pago: 'CONTADO',
-              estado: 'PENDIENTE',
-            });
-            setDetallesCompra([]);
-            resolve('success');
-          } else {
-            reject(data.message || 'Error al crear la compra');
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Error al crear la compra');
           }
+
+          const data = await response.json();
+          setCompras((prev) => [...prev, data]);
+          setNuevaCompra({
+            proveedorId: 0,
+            tipo_comprobante_id: 0,
+            nro_comprobante: '',
+            fecha_compra: new Date().toISOString().split('T')[0],
+            fecha_vencimiento: new Date().toISOString().split('T')[0],
+            tipo_moneda: 'PEN',
+            forma_pago: 'CONTADO',
+            estado: 'CANCELADO',
+          });
+          setDetallesCompra([]);
+          resolve('success');
         } catch (error) {
           console.error('Error:', error);
-          reject('Error de conexión con el servidor');
+          reject(error || 'Error de conexión con el servidor');
         }
       }),
       {
@@ -477,41 +493,86 @@ export default function ComprasPage() {
                   }
                 />
               </label>
-
+              {/* SELECT FECHA DE COMPRA */}
               <label className="text-sm font-medium">
-                <Calendar className="inline mr-1" size={16} />
                 Fecha Compra
-                <Input
-                  type="date"
-                  value={nuevaCompra.fecha_compra?.split('T')[0] || ''}
-                  onChange={(e) => {
-                    const fecha = new Date(e.target.value);
-                    fecha.setHours(0, 0, 0, 0);
-                    setNuevaCompra({
-                      ...nuevaCompra,
-                      fecha_compra: fecha.toISOString(),
-                    });
-                  }}
-                />
+                <Popover open={fechaCompraOpen} onOpenChange={setFechaCompraOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={'outline'}
+                      className={cn(
+                        'w-full justify-start text-left font-normal',
+                        !nuevaCompra.fecha_compra && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {nuevaCompra.fecha_compra ? (
+                        format(new Date(nuevaCompra.fecha_compra), 'PPP', { locale: es })
+                      ) : (
+                        <span>Seleccionar fecha</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={
+                        nuevaCompra.fecha_compra ? new Date(nuevaCompra.fecha_compra) : undefined
+                      }
+                      onSelect={(date) => {
+                        setNuevaCompra({
+                          ...nuevaCompra,
+                          fecha_compra: date?.toISOString() || new Date().toISOString(),
+                        });
+                        setFechaCompraOpen(false); // Cierra el Popover al seleccionar
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </label>
-
+              {/* SELECT FECHA DE VENCIMIENTO */}
               <label className="text-sm font-medium">
-                <Calendar className="inline mr-1" size={16} />
                 Fecha Vencimiento
-                <Input
-                  type="date"
-                  value={nuevaCompra.fecha_vencimiento?.split('T')[0] || ''}
-                  onChange={(e) => {
-                    const fecha = new Date(e.target.value);
-                    fecha.setHours(0, 0, 0, 0);
-                    setNuevaCompra({
-                      ...nuevaCompra,
-                      fecha_vencimiento: fecha.toISOString(),
-                    });
-                  }}
-                />
+                <Popover open={fechaVencimientoOpen} onOpenChange={setFechaVencimientoOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={'outline'}
+                      className={cn(
+                        'w-full justify-start text-left font-normal',
+                        !nuevaCompra.fecha_vencimiento && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {nuevaCompra.fecha_vencimiento ? (
+                        format(new Date(nuevaCompra.fecha_vencimiento), 'PPP', { locale: es })
+                      ) : (
+                        <span>Seleccionar fecha</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={
+                        nuevaCompra.fecha_vencimiento
+                          ? new Date(nuevaCompra.fecha_vencimiento)
+                          : undefined
+                      }
+                      onSelect={(date) => {
+                        setNuevaCompra({
+                          ...nuevaCompra,
+                          fecha_vencimiento: date?.toISOString() || new Date().toISOString(),
+                        });
+                        setFechaVencimientoOpen(false); // Cierra el Popover al seleccionar
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </label>
 
+              {/* SELECT MONEDA */}
               <label className="text-sm font-medium">
                 <DollarSign className="inline mr-1" size={16} />
                 Moneda
@@ -542,6 +603,7 @@ export default function ComprasPage() {
                     setNuevaCompra({
                       ...nuevaCompra,
                       forma_pago: value,
+                      estado: value === 'CONTADO' ? 'CANCELADO' : 'PENDIENTE',
                     })
                   }
                 >
@@ -554,13 +616,106 @@ export default function ComprasPage() {
                   </SelectContent>
                 </Select>
               </label>
+              {/*BOTONES DE AGREGAR PROVEEDOR, PRODUCTO Y LOTE */}
+              <div className="grid grid-cols-3 col-span-2 gap-4 mt-5">
+                <Button className="text-xs font-semibold">
+                  <FilePlus2 />
+                  Agregar Proveedor
+                </Button>
+                <Button className="text-xs font-semibold">
+                  <FilePlus2 />
+                  Agregar Producto
+                </Button>
+                {/*BOTON CON FORMULARIO DE LOTE */}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="text-xs font-semibold">
+                      <FilePlus2 />
+                      Agregar Lote
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>
+                        <FileText className="inline mr-2" />
+                        Registrar Nuevo Lote
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4">
+                      <label className="text-sm font-medium">
+                        Número de Lote
+                        <Input
+                          id="numero_lote"
+                          placeholder="Número de Lote"
+                          className="ring-offset-0 focus-visible:ring-offset-0"
+                          onChange={(e) =>
+                            setNuevoLote({
+                              ...nuevoLote,
+                              numero_lote: e.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                      <label className="text-sm font-medium">
+                        Fecha Vencimiento
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant={'outline'}
+                              className={cn(
+                                'w-full justify-start text-left font-normal',
+                                !nuevoLote.fecha_vencimiento && 'text-muted-foreground'
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {nuevoLote.fecha_vencimiento ? (
+                                format(new Date(nuevoLote.fecha_vencimiento), 'PPP', { locale: es })
+                              ) : (
+                                <span>Seleccionar fecha</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              captionLayout="dropdown" // Añade esta línea
+                              fromYear={new Date().getFullYear() - 5} // Opcional: Define el año inicial
+                              toYear={new Date().getFullYear() + 20} // Opcional: Define el año final
+                              selected={
+                                nuevoLote.fecha_vencimiento
+                                  ? new Date(nuevoLote.fecha_vencimiento)
+                                  : undefined
+                              }
+                              onSelect={(date) =>
+                                setNuevoLote({
+                                  ...nuevoLote,
+                                  fecha_vencimiento:
+                                    date?.toISOString() || new Date().toISOString(),
+                                })
+                              }
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </label>
+                      <DialogClose asChild>
+                        <Button className="font-semibold" onClick={handleCrearLote}>
+                          <Save />
+                          GUARDAR
+                        </Button>
+                      </DialogClose>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
 
-            {/* DETALLES DE COMPRAS */}
+            {/* FORMULARIO DE DETALLES DE COMPRAS */}
             <div className="mt-4">
               <h3 className="text-lg font-semibold mb-2">Detalle de Productos</h3>
               <div className="grid grid-cols-9 gap-2 mb-2">
-                <label className="col-span-3">
+                <label className="col-span-4">
+                  {/*SELECT DE POPOVER LOTE PRODUCTOS */}
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" role="combobox" className="w-full justify-between">
@@ -572,7 +727,7 @@ export default function ComprasPage() {
                         <ChevronRight className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[350px] p-0">
+                    <PopoverContent className="w-[400px] p-0">
                       <Command>
                         <CommandInput placeholder="Buscar producto..." />
                         <CommandList>
@@ -596,6 +751,7 @@ export default function ComprasPage() {
                                   )}
                                 />
                                 {producto.nombre}
+                                {producto.marca?.nombre ? ` - ${producto.marca.nombre}` : ''}
                               </CommandItem>
                             ))}
                           </CommandGroup>
@@ -604,10 +760,7 @@ export default function ComprasPage() {
                     </PopoverContent>
                   </Popover>
                 </label>
-                <Button className="text-xs font-semibold">
-                  Agregar
-                  <br /> Producto
-                </Button>
+
                 {/*SELECT DE POPOVER LOTE PRODUCTOS */}
                 <label className="col-span-2">
                   <Popover>
@@ -621,7 +774,7 @@ export default function ComprasPage() {
                         <ChevronRight className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[250px] p-0">
+                    <PopoverContent className="w-[200px] p-0">
                       <Command>
                         <CommandInput placeholder="Buscar lote.." />
                         <CommandList>
@@ -633,7 +786,6 @@ export default function ComprasPage() {
                                 value={lote.numero_lote}
                                 onSelect={() => {
                                   setSelectedLoteId(lote.id.toString());
-                                  // setPrecioCompra(lote.precio_compra.toString());
                                 }}
                               >
                                 <Check
@@ -652,57 +804,6 @@ export default function ComprasPage() {
                       </Command>
                     </PopoverContent>
                   </Popover>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="mt-2 w-full">
-                        <FilePlus2 className="h-4 w-4 mr-2" />
-                        Nuevo Lote
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Crear Nuevo Lote</DialogTitle>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <label htmlFor="numero_lote" className="text-right">
-                            Número de Lote
-                          </label>
-                          <Input
-                            id="numero_lote"
-                            className="col-span-3"
-                            onChange={(e) =>
-                              setNuevoLote({
-                                ...nuevoLote,
-                                numero_lote: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <label htmlFor="fecha_vencimiento" className="text-right">
-                            Fecha Vencimiento
-                          </label>
-                          <Input
-                            id="fecha_vencimiento"
-                            type="date"
-                            className="col-span-3"
-                            onChange={(e) =>
-                              setNuevoLote({
-                                ...nuevoLote,
-                                fecha_vencimiento: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-                      <DialogClose asChild>
-                        <Button type="submit" onClick={handleCrearLote}>
-                          Guardar Lote
-                        </Button>
-                      </DialogClose>
-                    </DialogContent>
-                  </Dialog>
                 </label>
 
                 <Input
@@ -711,7 +812,6 @@ export default function ComprasPage() {
                   min="1"
                   value={cantidad}
                   onChange={(e) => setCantidad(e.target.value)}
-                  className=""
                 />
                 <Input
                   type="number"
@@ -721,27 +821,19 @@ export default function ComprasPage() {
                   value={precioCompra}
                   onChange={(e) => setPrecioCompra(e.target.value)}
                 />
-                {/* <Input
-                  type="number"
-                  placeholder="Desct %"
-                  step="0.01"
-                  min="0"
-                  value={descuento}
-                  onChange={(e) => setDescuento(e.target.value)}
-                /> */}
                 <Button onClick={handleAgregarDetalle} className="font-semibold">
                   <FileDown />
                   Agregar
                 </Button>
               </div>
-
+              {/*TABLA DE DETALLES DE COMPRAS */}
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Producto</TableHead>
+                    <TableHead>Lote</TableHead>
                     <TableHead>Cantidad</TableHead>
-                    <TableHead>Precio</TableHead>
-                    {/* <TableHead>Descuento</TableHead> */}
+                    <TableHead>Costo</TableHead>
                     <TableHead>Subtotal</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -749,6 +841,7 @@ export default function ComprasPage() {
                   {detallesCompra.map((detalle, index) => (
                     <TableRow key={index}>
                       <TableCell>{detalle.producto?.nombre}</TableCell>
+                      <TableCell>{detalle.lote?.numero_lote}</TableCell>
                       <TableCell>{detalle.cantidad}</TableCell>
                       <TableCell>
                         {new Intl.NumberFormat('es-PE', {
@@ -756,12 +849,6 @@ export default function ComprasPage() {
                           currency: 'PEN',
                         }).format(detalle.precio_compra)}
                       </TableCell>
-                      {/* <TableCell>
-                        {new Intl.NumberFormat('es-PE', {
-                          style: 'currency',
-                          currency: 'PEN',
-                        }).format(detalle.descuento || 0)}
-                      </TableCell> */}
                       <TableCell>
                         {new Intl.NumberFormat('es-PE', {
                           style: 'currency',
@@ -793,11 +880,11 @@ export default function ComprasPage() {
           </DialogContent>
         </Dialog>
       </div>
-
+      {/*BOTON DE FILTRAR POR FECHA Y NUMERO DE COMPROBANTE */}
       <div className="flex-1 mb-4">
         <Input
           type="search"
-          placeholder="Buscar por número de comprobante o proveedor..."
+          placeholder="Buscar por nro de comprobante o proveedor..."
           className="w-[300px] h-[32px] bg-muted max-w-full"
           prefix={<Search className="h-4 w-4 text-muted-foreground" />}
           value={searchTerm}
@@ -807,14 +894,16 @@ export default function ComprasPage() {
           }}
         />
       </div>
-
+      {/*TABLA DE LISTADO DE COMPRAS */}
       <div className="hidden border md:block">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Comprobante</TableHead>
               <TableHead>Nro. Comprobante</TableHead>
               <TableHead>Proveedor</TableHead>
               <TableHead>Fecha</TableHead>
+              <TableHead>Tipo Pago</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead>Acciones</TableHead>
@@ -823,9 +912,11 @@ export default function ComprasPage() {
           <TableBody>
             {paginatedCompras.map((compra) => (
               <TableRow key={compra.id}>
+                <TableCell>{compra.tipoComprobante?.nombre}</TableCell>
                 <TableCell>{compra.nro_comprobante}</TableCell>
                 <TableCell>{compra.proveedor.nombre}</TableCell>
                 <TableCell>{new Date(compra.fecha_compra).toLocaleDateString()}</TableCell>
+                <TableCell>{compra.forma_pago}</TableCell>
                 <TableCell>
                   {new Intl.NumberFormat('es-PE', {
                     style: 'currency',

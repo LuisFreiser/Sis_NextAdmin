@@ -41,7 +41,7 @@ export async function GET() {
   }
 }
 
-//FUNCION PARA CREAR UNA COMPRA
+//FUNCION PARA CREAR UNA COMPRA Y SUS DETALLES
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
           detalleCompras: {
             create: detalleCompras.map((detalle: DetalleCompras) => ({
               productoId: detalle.productoId,
+              lote_productoId: detalle.lote_productoId,
               cantidad: detalle.cantidad,
               precio_compra: detalle.precio_compra,
             })),
@@ -166,6 +167,7 @@ export async function PUT(req: NextRequest) {
           detalleCompras: {
             create: detalleCompras.map((detalle: DetalleCompras) => ({
               productoId: detalle.productoId,
+              lote_productoId: detalle.lote_productoId,
               cantidad: detalle.cantidad,
               precio_compra: detalle.precio_compra,
             })),

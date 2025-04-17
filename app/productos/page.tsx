@@ -601,10 +601,9 @@ export default function ProductosPage() {
                   Precio Compra
                   <Input
                     type="number"
-                    min="0"
-                    step="0.01"
                     placeholder="0.00"
-                    className="focus-visible:ring-offset-0"
+                    step="0.01"
+                    min="0"
                     value={nuevoProducto.precio_compra || ''}
                     onChange={(e) =>
                       setNuevoProducto({
@@ -623,7 +622,7 @@ export default function ProductosPage() {
                     min="0"
                     step="0.01"
                     placeholder="0.00"
-                    className="focus-visible:ring-offset-0"
+                    className="apparency-none"
                     value={nuevoProducto.precio_venta_caja || ''}
                     onChange={(e) =>
                       setNuevoProducto({
